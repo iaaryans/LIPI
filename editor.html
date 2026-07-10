@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LIPI Studio</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-palenight.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.0/split.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bg: { main: '#050505', panel: '#0A0A0A', header: '#0f0f0f', border: '#1f1f22' },
+                        lipi: { accent: '#7c3aed', muted: '#52525b', text: '#a1a1aa' }
+                    },
+                    fontFamily: { mono: ['JetBrains Mono', 'monospace'], sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #050505; color: #e5e7eb; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0A0A0A; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2e; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        /* ── CodeMirror ── */
+        .CodeMirror { height: 100% !important; background: #0A0A0A !important; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #d1d5db; line-height: 1.6; }
+        .CodeMirror-gutters { background: #0A0A0A !important; border-right: 1px solid #1f1f22; }
+
+        /* ── Split gutter ── */
+        .gutter { background-color: #050505; z-index: 50; transition: background-color 0.15s; }
+        .gutter.gutter-horizontal { cursor: col-resize; }
+        .gutter.gutter-vertical { cursor: row-resize; }
+        .gutter:hover { background-color: #7c3aed; }
+
+        /* ── Editor Tabs ── */
+        .tab-btn {
+            padding: 0 14px; height: 100%; font-size: 11.5px; font-weight: 500;
+            border-top: 2px solid transparent; cursor: pointer;
+            display: flex; align-items: center; gap: 7px; color: #71717a;
+            border-right: 1px solid #1f1f22; white-space: nowrap; transition: all 0.15s;
+            user-select: none;
+        }
+        .tab-btn:hover { color: #e5e7eb; background: #1a1a1d; }
+        .tab-btn.active { border-top-color: #7c3aed; color: white; background: #0A0A0A; }
+        .tab-btn.inactive { background: #0f0f0f; }
+        .tab-unsaved::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; margin-left: 4px; vertical-align: middle; }
+
+        /* ── Project Sidebar ── */
+        #project-sidebar {
+            width: 220px; min-width: 220px; max-width: 220px;
+            background: #080808; border-right: 1px solid #1f1f22;
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: width 0.2s ease, min-width 0.2s ease, max-width 0.2s ease;
+        }
+        #project-sidebar.collapsed { width: 0; min-width: 0; max-width: 0; }
+
+        .proj-item {
+            display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+            border-radius: 6px; cursor: pointer; font-size: 12px; color: #a1a1aa;
+            transition: all 0.12s; position: relative; user-select: none;
+            margin: 1px 6px;
+        }
+        .proj-item:hover { background: #141418; color: #e5e7eb; }
+        .proj-item.active { background: rgba(124,58,237,0.15); color: white; }
+        .proj-item.active::before {
+            content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+            width: 2px; height: 60%; background: #7c3aed; border-radius: 0 2px 2px 0;
+        }
+        .proj-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .proj-item-actions { display: none; gap: 4px; }
+        .proj-item:hover .proj-item-actions { display: flex; }
+        .proj-action-btn {
+            width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; color: #71717a; transition: all 0.12s;
+            background: none; border: none; cursor: pointer; padding: 0;
+        }
+        .proj-action-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .proj-action-btn.danger:hover { background: rgba(239,68,68,0.15); color: #f87171; }
+
+        /* ── AI Panel ── */
+        #ai-panel {
+            width: 320px; min-width: 320px; max-width: 320px;
+            background: #080808; border-left: 1px solid #1f1f22;
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: width 0.2s ease, min-width 0.2s ease, max-width 0.2s ease;
+        }
+        #ai-panel.collapsed { width: 0; min-width: 0; max-width: 0; }
+
+        .ai-message { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; animation: fadeSlideIn 0.2s ease; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ai-bubble {
+            padding: 10px 13px; border-radius: 10px; font-size: 12px; line-height: 1.6;
+            max-width: 100%; word-break: break-word; white-space: pre-wrap;
+        }
+        .ai-bubble.user { background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.25); color: #e5e7eb; align-self: flex-end; border-radius: 10px 10px 2px 10px; }
+        .ai-bubble.assistant { background: #141418; border: 1px solid #27272a; color: #d1d5db; align-self: flex-start; border-radius: 10px 10px 10px 2px; }
+        .ai-bubble.assistant code { background: #1f1f22; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #c084fc; }
+        .ai-bubble.assistant pre { background: #0a0a0a; border: 1px solid #27272a; border-radius: 6px; padding: 10px; overflow-x: auto; margin: 6px 0; }
+        .ai-bubble.assistant pre code { background: none; padding: 0; color: #86efac; font-size: 11px; }
+
+        .ai-thinking { display: flex; gap: 4px; padding: 10px 13px; align-items: center; }
+        .ai-thinking span { width: 6px; height: 6px; border-radius: 50%; background: #52525b; animation: aiPulse 1.2s ease-in-out infinite; }
+        .ai-thinking span:nth-child(2) { animation-delay: 0.2s; }
+        .ai-thinking span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes aiPulse { 0%,80%,100% { transform: scale(0.8); opacity: 0.4; } 40% { transform: scale(1.1); opacity: 1; } }
+
+        /* ── Loader ── */
+        #globalLoader { position: fixed; inset: 0; background: #050505; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+
+        /* ── Preview scrollbar ── */
+        #app-preview::-webkit-scrollbar { width: 6px; height: 6px; }
+        #app-preview::-webkit-scrollbar-track { background: #f3f4f6; }
+        #app-preview::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+        /* ── Modal overlay ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-box {
+            background: #0f0f0f; border: 1px solid #27272a; border-radius: 12px;
+            padding: 24px; width: 360px; box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+        }
+
+        /* ── Inline rename input ── */
+        .proj-rename-input {
+            background: #1f1f22; border: 1px solid #7c3aed; color: white;
+            border-radius: 4px; padding: 2px 6px; font-size: 12px;
+            outline: none; width: 100%;
+        }
+
+        /* ── Console ── */
+        #app-preview { flex: 1; background: white; position: relative; overflow: auto; }
+
+        /* ── AI streaming cursor ── */
+        @keyframes cursorBlink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen">
+
+    <!-- LOADER -->
+    <div id="globalLoader">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-10 h-10 border-4 border-lipi-accent/30 border-t-lipi-accent rounded-full animate-spin"></div>
+            <div class="text-xs text-lipi-muted font-mono animate-pulse">Verifying Access...</div>
+        </div>
+    </div>
+
+    <!-- CONFIRM DELETE MODAL -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                    <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                </div>
+                <div>
+                    <div class="text-white font-semibold text-sm">Delete Project</div>
+                    <div class="text-lipi-muted text-xs mt-0.5">This action cannot be undone.</div>
+                </div>
+            </div>
+            <p class="text-sm text-gray-400 mb-5">Are you sure you want to delete <strong id="delete-modal-name" class="text-white"></strong>?</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="ProjectManager.closeDeleteModal()" class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors">Cancel</button>
+                <button id="delete-confirm-btn" class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP HEADER -->
+    <header class="h-11 bg-bg-header border-b border-bg-border flex items-center justify-between px-3 shrink-0 z-30">
+        <!-- Left: Logo + Project sidebar toggle -->
+        <div class="flex items-center gap-2">
+            <button id="toggle-sidebar-btn" title="Toggle Projects (Ctrl+P)" onclick="ProjectManager.toggleSidebar()" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white/5 text-lipi-muted hover:text-white transition-colors">
+                <i data-lucide="panel-left" class="w-3.5 h-3.5"></i>
+            </button>
+            <div class="w-px h-4 bg-bg-border mx-1"></div>
+            <div class="w-6 h-6 rounded-md bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+                <i data-lucide="layers" class="w-3 h-3 text-white"></i>
+            </div>
+            <span class="text-xs font-bold text-white hidden sm:block">LIPI</span>
+            <span class="text-lipi-muted text-[10px] font-mono hidden sm:block">STUDIO</span>
+            <!-- Current project name -->
+            <div class="w-px h-4 bg-bg-border mx-1 hidden sm:block"></div>
+            <span id="header-project-name" class="text-xs text-lipi-muted font-mono truncate max-w-[140px] hidden sm:block">—</span>
+            <div id="unsaved-dot" class="w-1.5 h-1.5 rounded-full bg-amber-500 hidden ml-1" title="Unsaved changes"></div>
+        </div>
+
+        <!-- Center: Tabs -->
+        <div class="flex items-center h-full overflow-x-auto">
+            <div id="tab-lipi" class="tab-btn active" onclick="EditorManager.switchTab('lipi')">
+                <i data-lucide="file-code" class="w-3 h-3 text-violet-400"></i>
+                <span>main.lipi</span>
+            </div>
+            <div id="tab-html" class="tab-btn inactive" onclick="EditorManager.switchTab('html')">
+                <i data-lucide="code" class="w-3 h-3 text-orange-400"></i>
+                <span>index.html</span>
+            </div>
+        </div>
+
+        <!-- Right: sync + run + user + AI toggle -->
+        <div class="flex items-center gap-2 shrink-0">
+            <!-- Sync status -->
+            <div id="syncStatus" class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-transparent transition-all duration-300 select-none">
+                <div id="syncDot" class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+                <span id="syncText" class="text-[9px] font-mono text-zinc-500"></span>
+            </div>
+
+            <!-- Run button -->
+            <button id="runBtn" title="Run (Ctrl+Enter)" class="flex items-center gap-1.5 bg-lipi-accent hover:bg-violet-600 active:bg-violet-700 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider active:scale-95 transition-all border border-white/10">
+                <i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> Run
+            </button>
+
+            <!-- Open App -->
+            <button id="openAppBtn" title="Open App in a new tab (no Studio UI)" class="flex items-center gap-1.5 bg-bg-panel hover:bg-white/10 text-gray-200 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider active:scale-95 transition-all border border-bg-border">
+                <i data-lucide="external-link" class="w-3 h-3"></i> Open App
+            </button>
+
+            <!-- Publish -->
+            <!-- <button id="publishBtn" title="Publish a public, shareable snapshot" class="flex items-center gap-1.5 bg-bg-panel hover:bg-white/10 text-gray-200 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider active:scale-95 transition-all border border-bg-border">
+                <i data-lucide="globe" class="w-3 h-3"></i> Publish
+            </button> -->
+
+            <!-- Export App -->
+            <button id="exportAppBtn" title="Download a runnable app bundle (.zip)" class="flex items-center gap-1.5 bg-bg-panel hover:bg-white/10 text-gray-200 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider active:scale-95 transition-all border border-bg-border">
+                <i data-lucide="download" class="w-3 h-3"></i> Export
+            </button>
+
+            <div class="w-px h-4 bg-bg-border"></div>
+
+            <!-- User pill -->
+            <div class="flex items-center gap-2 bg-bg-panel border border-bg-border px-2.5 py-1 rounded-full">
+                <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <i data-lucide="user" class="w-2 h-2 text-white"></i>
+                </div>
+                <span id="user-display" class="text-[11px] font-mono text-gray-300 max-w-[80px] truncate">...</span>
+                <div class="w-px h-3 bg-white/10"></div>
+                <button id="logoutBtn" title="Sign out" class="text-lipi-muted hover:text-red-400 transition-colors flex items-center">
+                    <i data-lucide="log-out" class="w-3 h-3"></i>
+                </button>
+            </div>
+
+            <!-- AI toggle -->
+            <button id="toggle-ai-btn" title="Toggle AI Assistant" onclick="AiPanel.toggle()" class="w-7 h-7 flex items-center justify-center rounded border border-bg-border hover:border-violet-500/40 hover:bg-violet-500/10 text-lipi-muted hover:text-violet-400 transition-all">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- SHARE / PUBLISH MODAL -->
+    <div id="share-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-bg-panel border border-bg-border rounded-xl p-5 w-[420px] max-w-[92vw] shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="globe" class="w-4 h-4 text-violet-400"></i> App published</span>
+                <button onclick="_closeShareModal()" class="text-lipi-muted hover:text-white text-lg leading-none">&times;</button>
+            </div>
+            <p class="text-[11px] text-lipi-muted mb-3">Anyone with this link can view and run a read-only snapshot of your app. Your private project and other projects are not exposed.</p>
+            <div class="flex items-center gap-2 mb-3">
+                <input id="share-url-input" readonly class="flex-1 bg-black/30 border border-bg-border rounded-lg px-3 py-2 text-[11px] font-mono text-gray-200 outline-none" />
+                <button onclick="_copyShareUrl()" class="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-bold shrink-0">Copy</button>
+            </div>
+            <button id="unpublishBtn" class="text-[10px] text-red-400 hover:text-red-300 uppercase font-bold tracking-wider">Unpublish this app</button>
+        </div>
+    </div>
+
+
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- ── PROJECT SIDEBAR ── -->
+        <div id="project-sidebar">
+            <div class="flex items-center justify-between px-3 py-2.5 border-b border-bg-border shrink-0">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-lipi-muted">Projects</span>
+                <button onclick="ProjectManager.createProject()" title="New Project" class="w-6 h-6 flex items-center justify-center rounded hover:bg-white/8 text-lipi-muted hover:text-white transition-colors">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+            <div id="project-list" class="flex-1 overflow-y-auto py-2">
+                <!-- Project items injected here -->
+                <div class="px-4 py-3 text-[11px] text-lipi-muted italic">Loading...</div>
+            </div>
+        </div>
+
+        <!-- ── EDITOR + PREVIEW AREA ── -->
+        <div class="flex flex-1 overflow-hidden" id="center-area">
+
+            <!-- Left pane: code editor -->
+            <div id="left-pane" class="flex flex-col min-w-[260px] bg-bg-panel border-r border-bg-border">
+                <div class="relative flex-1 overflow-hidden">
+                    <textarea id="code"></textarea>
+                </div>
+            </div>
+
+            <!-- Right pane: preview + console -->
+            <div id="right-pane" class="flex flex-col min-w-[260px] bg-bg-panel">
+
+                <!-- Preview -->
+                <div id="preview-pane" class="flex flex-col flex-1 min-h-[120px] overflow-hidden">
+                    <div class="h-7 shrink-0 bg-[#0f0f0f] border-b border-bg-border flex items-center justify-between px-3 select-none">
+                        <span class="text-[9px] font-bold text-gray-500 flex items-center gap-1.5 uppercase tracking-wider">
+                            <i data-lucide="globe" class="w-2.5 h-2.5 text-blue-400"></i> Live Preview
+                        </span>
+                        <div class="flex gap-1"><div class="w-2 h-2 rounded bg-red-500/20"></div><div class="w-2 h-2 rounded bg-yellow-500/20"></div><div class="w-2 h-2 rounded bg-green-500/20"></div></div>
+                    </div>
+                    <div id="app-preview" class="flex-1 bg-white relative overflow-auto text-black font-sans w-full">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center select-none p-4 pointer-events-none">
+                            <p class="text-xs text-gray-400 max-w-[240px] leading-relaxed">Write your logic and click <span class="font-mono font-bold text-violet-600 bg-violet-50 px-1 py-0.5 rounded border border-violet-100">RUN</span> to see output.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Console -->
+                <div id="console-pane" class="flex flex-col min-h-[100px] border-t border-bg-border">
+                    <div class="h-7 bg-[#0f0f0f] border-b border-bg-border flex items-center justify-between px-3 select-none shrink-0">
+                        <span class="text-[9px] font-bold text-gray-500 flex items-center gap-1.5 uppercase tracking-wider">
+                            <i data-lucide="terminal-square" class="w-2.5 h-2.5 text-emerald-400"></i> Console
+                        </span>
+                        <button id="clearTerm" class="text-[9px] text-lipi-muted hover:text-white uppercase font-bold tracking-wider transition-colors">Clear</button>
+                    </div>
+                    <div id="console" class="flex-1 p-2.5 font-mono text-xs overflow-y-auto text-gray-300 bg-[#080808]"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── AI PANEL ── -->
+        <div id="ai-panel" class="collapsed">
+            <!-- AI Header -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-bg-border shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-md bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+                        <i data-lucide="sparkles" class="w-3 h-3 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-bold text-white">Lipi AI</div>
+                        <div class="text-[9px] text-lipi-muted font-mono">Powered by Groq</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="AiPanel.clearChat()" title="Clear chat" class="w-6 h-6 flex items-center justify-center rounded hover:bg-white/5 text-lipi-muted hover:text-white transition-colors">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>
+                    <button onclick="AiPanel.toggle()" class="w-6 h-6 flex items-center justify-center rounded hover:bg-white/5 text-lipi-muted hover:text-white transition-colors">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI quick prompts -->
+            <div class="px-3 py-2 border-b border-bg-border shrink-0">
+                <div class="flex flex-wrap gap-1.5">
+                    <button onclick="AiPanel.quickPrompt('Explain this Lipi code')" class="text-[10px] px-2 py-1 rounded-full bg-white/5 hover:bg-violet-500/15 border border-white/8 hover:border-violet-500/30 text-lipi-muted hover:text-violet-300 transition-all">Explain code</button>
+                    <button onclick="AiPanel.quickPrompt('Find bugs in this Lipi code and fix them')" class="text-[10px] px-2 py-1 rounded-full bg-white/5 hover:bg-violet-500/15 border border-white/8 hover:border-violet-500/30 text-lipi-muted hover:text-violet-300 transition-all">Fix bugs</button>
+                    <button onclick="AiPanel.quickPrompt('Optimize this Lipi code for clarity and performance')" class="text-[10px] px-2 py-1 rounded-full bg-white/5 hover:bg-violet-500/15 border border-white/8 hover:border-violet-500/30 text-lipi-muted hover:text-violet-300 transition-all">Optimize</button>
+                    <button onclick="AiPanel.quickPrompt('Write a Lipi function that')" class="text-[10px] px-2 py-1 rounded-full bg-white/5 hover:bg-violet-500/15 border border-white/8 hover:border-violet-500/30 text-lipi-muted hover:text-violet-300 transition-all">Write func</button>
+                </div>
+            </div>
+
+            <!-- AI Messages -->
+            <div id="ai-messages" class="flex-1 overflow-y-auto p-3 flex flex-col">
+                <!-- Welcome message -->
+                <div class="ai-message">
+                    <div class="ai-bubble assistant">
+                        <strong style="color:#a78bfa;">Lipi AI</strong> — I know the Lipi language, its syntax, builtins, and the AST compiler. Ask me anything about your code or the language.
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Input -->
+            <div class="p-3 border-t border-bg-border shrink-0">
+                <div class="flex gap-2 items-end">
+                    <textarea
+                        id="ai-input"
+                        placeholder="Ask about your code..."
+                        rows="2"
+                        class="flex-1 bg-[#141418] border border-bg-border hover:border-zinc-600 focus:border-violet-500/50 text-white text-xs rounded-lg px-3 py-2 resize-none outline-none placeholder-zinc-600 transition-colors font-mono leading-relaxed"
+                        style="max-height: 120px;"
+                        onkeydown="AiPanel.handleKey(event)"
+                    ></textarea>
+                    <button id="ai-send-btn" onclick="AiPanel.send()" class="w-8 h-8 flex items-center justify-center bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors shrink-0 active:scale-95">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <div class="text-[9px] text-zinc-700 mt-1.5 text-center">Enter to send · Shift+Enter for new line</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER STATUS BAR -->
+    <footer class="h-6 bg-[#0b0b0b] border-t border-bg-border flex items-center justify-between px-4 select-none shrink-0 text-[9.5px] font-mono text-lipi-muted z-30">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-1.5">
+                <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                <span id="status-text">Ready</span>
+            </div>
+            <span id="cursor-pos">Ln 1, Col 1</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="exec-time" class="hidden text-emerald-400"></span>
+            <span class="opacity-30">LIPI v3.0</span>
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/mode/simple.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/htmlmixed/htmlmixed.min.js"></script>
+
+    <script>
+        // Base URL for the roccoDB + AI bridge server (server/db-bridge.js).
+        // Override per-deployment, e.g. via a build step or a separate
+        // env.js that sets this before lipi.js loads.
+        window.LIPI_DB_API = window.LIPI_DB_API || 'http://127.0.0.1:4000/api/db';
+    </script>
+    <script src="lipi.js"></script>
+    <script src="editor.js"></script>
+    <script src="project-manager.js"></script>
+    <script src="ai-panel.js"></script>
+    <script type="module" src="editor-sync.js"></script>
+</body>
+</html>

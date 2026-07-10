@@ -1,0 +1,23 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "LIPI Studio backend bridge for roccoDB",
+  "main": "db-bridge.js",
+  "scripts": {
+    "start": "node db-bridge.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "firebase-admin": "^14.1.0",
+    "helmet": "^8.2.0",
+    "multer": "^2.2.0",
+    "roccodb-iaaryan": "^1.0.2"
+  }
+}

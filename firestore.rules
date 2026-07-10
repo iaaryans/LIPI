@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// LIPI Studio — Firestore Security Rules (v12.0)
+//
+// Data model:
+//   users/{uid}/projects/{projectId}   — PRIVATE. Only the owning user may
+//                                         read or write their own projects.
+//   published/{projectId}              — PUBLIC READ. A deliberate snapshot
+//                                         written only by "Publish" in
+//                                         Studio. Anyone can read it (that's
+//                                         the whole point of a public app
+//                                         URL); only the original owner can
+//                                         create/update/delete it, and only
+//                                         if the snapshot's ownerUid matches
+//                                         their own uid — so nobody can
+//                                         publish over someone else's app.
+//
+// Deploy with:
+//   firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Private per-user projects ──────────────────────────────────────
+    match /users/{uid}/projects/{projectId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Public published snapshots ─────────────────────────────────────
+    match /published/{projectId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update, delete: if request.auth != null
+                    && resource.data.ownerUid == request.auth.uid;
+    }
+  }
+}

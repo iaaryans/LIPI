@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LIPI Language Reference — v3.0</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../lipi.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bg: { main: '#09090b', panel: '#121212', border: '#27272a' },
+                        lipi: { accent: '#8b5cf6', success: '#10b981', muted: '#71717a', text: '#a1a1aa' }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background: #09090b; color: #e5e7eb; overflow-x: hidden; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+            position: fixed; inset: 0; z-index: -1;
+        }
+
+        .glass-card {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Syntax Highlighting */
+        .code-block { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.7; color: #a1a1aa; outline: none; }
+        .k  { color: #c084fc; font-weight: 600; }   /* Keyword */
+        .s  { color: #4ade80; }                       /* String */
+        .f  { color: #60a5fa; }                       /* Function/Builtin */
+        .c  { color: #52525b; font-style: italic; }   /* Comment */
+        .n  { color: #f472b6; }                       /* Number */
+        .op { color: #e5e7eb; }                       /* Operator */
+        .sel{ color: #fbbf24; }                       /* Selector */
+        .t  { color: #fb923c; }                       /* Type/Special */
+        .cm { color: #818cf8; }                       /* Class/Method */
+
+        /* Sidebar active */
+        .nav-link.active {
+            color: #fff;
+            border-left-color: #8b5cf6;
+            background: linear-gradient(90deg, rgba(139,92,246,0.1) 0%, transparent 100%);
+        }
+
+        /* Terminal modal */
+        #term-modal {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            transform: translateY(100%); opacity: 0; pointer-events: none;
+        }
+        #term-modal.open { transform: translateY(0); opacity: 1; pointer-events: all; }
+
+        #globalLoader { position: fixed; inset: 0; background: #050505; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease;}
+
+        /* Section styling */
+        .section-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 3px 10px; border-radius: 999px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+            background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); color: #8b5cf6;
+            margin-bottom: 16px;
+        }
+
+        .callout {
+            border-left: 3px solid #8b5cf6;
+            background: rgba(139,92,246,0.05);
+            border-radius: 0 8px 8px 0;
+            padding: 14px 18px;
+            margin: 16px 0;
+        }
+        .callout-warning { border-left-color: #f59e0b; background: rgba(245,158,11,0.05); }
+        .callout-info    { border-left-color: #3b82f6; background: rgba(59,130,246,0.05); }
+        .callout-success { border-left-color: #10b981; background: rgba(16,185,129,0.05); }
+
+        .prop-table td, .prop-table th { padding: 10px 14px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .prop-table th { color: #71717a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+        .prop-table td:first-child { font-family: 'JetBrains Mono', monospace; color: #c084fc; }
+        .prop-table td:nth-child(2) { color: #60a5fa; }
+        .prop-table td:last-child   { color: #a1a1aa; }
+
+        .run-btn {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 10px; font-weight: 700; color: #10b981;
+            border: 1px solid rgba(16,185,129,0.3); padding: 2px 10px; border-radius: 4px;
+            cursor: pointer; transition: all 0.15s; background: transparent;
+        }
+        .run-btn:hover { background: #10b981; color: #000; }
+
+        .code-header {
+            background: rgba(255,255,255,0.03); padding: 8px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .code-filename { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #52525b; }
+
+        /* Inline code */
+        .ic { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #c084fc; background: rgba(139,92,246,0.08); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(139,92,246,0.15); }
+        .ic-b { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #60a5fa; background: rgba(96,165,250,0.08); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(96,165,250,0.15); }
+    </style>
+</head>
+
+<body class="font-sans antialiased selection:bg-lipi-accent/30 selection:text-white">
+
+    <div id="globalLoader">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-10 h-10 border-4 border-lipi-accent/30 border-t-lipi-accent rounded-full animate-spin"></div>
+            <div class="text-xs text-lipi-muted font-mono animate-pulse">Loading Docs...</div>
+        </div>
+    </div>
+
+    <div class="fixed inset-0 -z-10">
+        <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-violet-900/10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[20%] left-[-10%] w-[400px] h-[400px] bg-emerald-900/05 rounded-full blur-[100px]"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="fixed top-0 w-full z-50 bg-[#09090b]/80 backdrop-blur-md border-b border-bg-border">
+        <div class="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="../index.html" class="w-8 h-8 rounded bg-lipi-accent/10 border border-lipi-accent/30 flex items-center justify-center hover:bg-lipi-accent/20 transition-colors">
+                    <i data-lucide="terminal" class="w-4 h-4 text-lipi-accent"></i>
+                </a>
+                <span class="font-bold text-lg tracking-tight text-white">LIPI <span class="text-lipi-muted font-normal text-sm ml-2">// Docs</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-2 px-3 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-lipi-muted">
+                    <span>v3.0 (Stable)</span>
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                </div>
+                <a href="../editor.html" class="flex items-center gap-2 bg-white text-black px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-200 transition-all">
+                    Open Studio <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-[1600px] mx-auto w-full pt-24 px-6 grid grid-cols-12 gap-12">
+
+        <!-- SIDEBAR -->
+        <aside class="col-span-12 lg:col-span-3 hidden lg:block sticky top-24 h-[85vh] overflow-y-auto pr-2">
+            <div class="space-y-7 pb-10">
+
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">01_Getting_Started</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#intro"     class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Introduction</a>
+                        <a href="#setup"     class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Quick Start</a>
+                        <a href="#model"     class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Execution Model</a>
+                    </nav>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">02_Fundamentals</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#variables" class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Variables & Types</a>
+                        <a href="#operators" class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Operators</a>
+                        <a href="#control"   class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Control Flow</a>
+                        <a href="#loops"     class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Loops</a>
+                        <a href="#functions" class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Functions</a>
+                    </nav>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">03_Data_Structures</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#arrays"    class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Arrays</a>
+                        <a href="#objects"   class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Objects</a>
+                    </nav>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">04_Web_Engine</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#dom"          class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">DOM Selection</a>
+                        <a href="#manipulation" class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Styles & Content</a>
+                        <a href="#events"       class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Events</a>
+                    </nav>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">05_Async_&_IO</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#async"  class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Async & wait()</a>
+                        <a href="#input"  class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">User Input</a>
+                    </nav>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">06_Standard_Library</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#builtins-math"   class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Math & Numbers</a>
+                        <a href="#builtins-string"  class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">String Helpers</a>
+                        <a href="#builtins-array"   class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Array Helpers</a>
+                        <a href="#builtins-dom"     class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">DOM Helpers</a>
+                        <a href="#builtins-type"    class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Type Conversion</a>
+                    </nav>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">07_Advanced</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#errors"    class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Error Handling</a>
+                        <a href="#patterns"  class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Best Practices</a>
+                        <a href="#examples"  class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Real Examples</a>
+                    </nav>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="col-span-12 lg:col-span-9 pb-40">
+
+            <!-- HEADER -->
+            <header class="mb-20 border-b border-white/5 pb-10">
+                <div class="section-badge"><i data-lucide="book-open" class="w-3 h-3"></i> Language Reference</div>
+                <h1 class="text-4xl lg:text-6xl font-bold text-white mb-6 leading-tight">The LIPI Manual.</h1>
+                <p class="text-lg text-lipi-text max-w-3xl leading-relaxed mb-8">
+                    Complete reference for the LIPI programming language — from syntax fundamentals to real-world algorithm design. Everything documented here reflects the actual behavior of the v3.0 engine.
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-card p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-white mb-1">AST</div>
+                        <div class="text-xs text-lipi-muted">Compiler Architecture</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-white mb-1">30+</div>
+                        <div class="text-xs text-lipi-muted">Built-in Functions</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-white mb-1">Zero</div>
+                        <div class="text-xs text-lipi-muted">Setup Required</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-white mb-1">DOM</div>
+                        <div class="text-xs text-lipi-muted">Native Web Access</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: INTRODUCTION                        -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="intro" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="book-open" class="w-3 h-3"></i> 01 — Introduction</div>
+                <h2 class="text-2xl font-bold text-white mb-4">What is LIPI?</h2>
+                <p class="text-lipi-text mb-5 leading-7">
+                    LIPI is a dynamically-typed, interpreted programming language that compiles to JavaScript at runtime inside the browser. Its pipeline is: <span class="ic">Lexer → Parser → AST → Code Generator → JS Execution</span>. It is designed to feel like a clean hybrid of Python and JavaScript — with Python's readable syntax and JavaScript's direct access to the browser's DOM.
+                </p>
+                <p class="text-lipi-text mb-6 leading-7">
+                    LIPI is not a toy or a demo language. It features a full operator precedence parser (Pratt parser), a proper abstract syntax tree, a scope-aware code generator, and a production-grade runtime with 30+ built-in functions. Every feature documented here works exactly as described.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="glass-card p-5 rounded-xl border-t-2 border-t-violet-500">
+                        <div class="flex items-center gap-2 mb-3"><i data-lucide="zap" class="w-4 h-4 text-violet-400"></i><span class="text-white font-semibold text-sm">Clean Syntax</span></div>
+                        <p class="text-xs text-lipi-text leading-relaxed">No semicolons. No curly-brace ceremony for conditions. Indentation is used for readability. Blocks are delimited with <span class="ic">{}</span>.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl border-t-2 border-t-emerald-500">
+                        <div class="flex items-center gap-2 mb-3"><i data-lucide="globe" class="w-4 h-4 text-emerald-400"></i><span class="text-white font-semibold text-sm">DOM-Native</span></div>
+                        <p class="text-xs text-lipi-text leading-relaxed">HTML element selection and event binding are first-class language features. No framework or library needed to manipulate the page.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl border-t-2 border-t-blue-500">
+                        <div class="flex items-center gap-2 mb-3"><i data-lucide="timer" class="w-4 h-4 text-blue-400"></i><span class="text-white font-semibold text-sm">Transparent Async</span></div>
+                        <p class="text-xs text-lipi-text leading-relaxed">Async is invisible. Call <span class="ic">wait(ms)</span> and execution pauses cleanly. No <code class="ic">async</code>/<code class="ic">await</code> keywords required in your code.</p>
+                    </div>
+                </div>
+
+                <div class="callout">
+                    <div class="text-white font-semibold text-sm mb-1">Design Philosophy</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">LIPI's primary use case is writing logic for interactive browser-based applications, visual simulations, algorithm demonstrations, and educational tooling. If you can think it in pseudocode, you can write it in LIPI.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: QUICK START                         -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="setup" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="play-circle" class="w-3 h-3"></i> 01 — Quick Start</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Getting Started</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    LIPI requires no installation, no build step, and no package manager. Include the engine script in your HTML page. The engine auto-initializes on <span class="ic">DOMContentLoaded</span>.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">your-page.html</span>
+                        <div class="flex gap-1.5"><div class="w-2 h-2 rounded-full bg-red-500/50"></div><div class="w-2 h-2 rounded-full bg-yellow-500/50"></div><div class="w-2 h-2 rounded-full bg-green-500/50"></div></div>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c">&lt;!-- Step 1: Include the engine --&gt;</span>
+&lt;script src=<span class="s">"lipi.js"</span>&gt;&lt;/script&gt;
+
+<span class="c">&lt;!-- Step 2: Write LIPI code with Lipi.run() --&gt;</span>
+&lt;script&gt;
+  document.addEventListener(<span class="s">'DOMContentLoaded'</span>, () =&gt; {
+    Lipi.run(`
+      <span class="f">log</span>(<span class="s">"Hello from LIPI!"</span>)
+      <span class="k">let</span> x <span class="op">=</span> <span class="n">10</span> <span class="op">+</span> <span class="n">5</span>
+      <span class="f">log</span>(<span class="s">"Result: "</span> <span class="op">+</span> x)
+    `);
+  });
+&lt;/script&gt;</pre>
+                    </div>
+                </div>
+
+                <p class="text-lipi-text mb-4 leading-7">In the <strong class="text-white">LIPI Studio</strong> editor, you write code directly — no setup at all. The <span class="ic">main.lipi</span> tab is your logic file; the <span class="ic">index.html</span> tab is your layout. Click <span class="ic-b">RUN</span> or press <span class="ic">Ctrl+Enter</span> to execute.</p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">first-program.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># Your first LIPI program</span>
+<span class="k">let</span> language <span class="op">=</span> <span class="s">"LIPI"</span>
+<span class="k">let</span> version  <span class="op">=</span> <span class="n">11.0</span>
+<span class="k">let</span> ready    <span class="op">=</span> <span class="k">true</span>
+
+<span class="f">log</span>(<span class="s">"Language: "</span> <span class="op">+</span> language)
+<span class="f">log</span>(<span class="s">"Version:  "</span> <span class="op">+</span> version)
+<span class="f">log</span>(<span class="s">"Ready:    "</span> <span class="op">+</span> ready)</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: EXECUTION MODEL                     -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="model" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="cpu" class="w-3 h-3"></i> 01 — Execution Model</div>
+                <h2 class="text-2xl font-bold text-white mb-4">How LIPI Runs Code</h2>
+                <p class="text-lipi-text mb-5 leading-7">
+                    Understanding how LIPI executes code will help you write better programs and debug unexpected behavior. The pipeline has four stages:
+                </p>
+
+                <div class="flex flex-col gap-3 mb-8">
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-4">
+                        <div class="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 font-bold text-xs">1</span></div>
+                        <div>
+                            <div class="text-white font-semibold text-sm mb-1">Lexer (Tokenization)</div>
+                            <p class="text-xs text-lipi-text leading-relaxed">Your source text is scanned character-by-character and converted into a flat stream of typed tokens: keywords, identifiers, strings, numbers, operators, and punctuation. Unknown characters cause a <span class="ic">LexError</span> immediately.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-4">
+                        <div class="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 font-bold text-xs">2</span></div>
+                        <div>
+                            <div class="text-white font-semibold text-sm mb-1">Parser (AST Construction)</div>
+                            <p class="text-xs text-lipi-text leading-relaxed">The token stream is parsed using a Recursive Descent parser with a Pratt (top-down operator precedence) expression parser. This produces a typed Abstract Syntax Tree. Invalid syntax causes a <span class="ic">ParseError</span> with line numbers.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-4">
+                        <div class="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 font-bold text-xs">3</span></div>
+                        <div>
+                            <div class="text-white font-semibold text-sm mb-1">Code Generator (AST → JavaScript)</div>
+                            <p class="text-xs text-lipi-text leading-relaxed">The AST is walked and each node is emitted as equivalent JavaScript. The generator wraps output in an <span class="ic">async IIFE</span> so that <span class="ic">wait()</span> can pause execution transparently using <span class="ic">await</span>. User-declared functions are tracked and awaited at all call sites.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-4">
+                        <div class="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 font-bold text-xs">4</span></div>
+                        <div>
+                            <div class="text-white font-semibold text-sm mb-1">JavaScript Execution</div>
+                            <p class="text-xs text-lipi-text leading-relaxed">The generated JavaScript is executed via <span class="ic">new Function()</span> in the current page scope. All browser globals (<span class="ic">Math</span>, <span class="ic">JSON</span>, <span class="ic">Object</span>, <span class="ic">Array</span>, etc.) are accessible. Runtime errors are caught and displayed with full context.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="callout callout-info">
+                    <div class="text-blue-300 font-semibold text-sm mb-1">Why no <code>await</code> in your code?</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">LIPI's code generator automatically inserts <span class="ic">await</span> in the compiled JavaScript for any call to <span class="ic">wait()</span>, <span class="ic">getInput()</span>, or any function you define with <span class="ic">func</span>. This means your LIPI code reads like synchronous code while executing asynchronously under the hood.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: VARIABLES & TYPES                   -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="variables" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="variable" class="w-3 h-3"></i> 02 — Fundamentals</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Variables & Types</h2>
+                <p class="text-lipi-text mb-5 leading-7">
+                    All variables are declared with the <span class="ic">let</span> keyword. LIPI is dynamically typed — a variable can hold any value and its type can change during execution. There is no <span class="ic">const</span> or <span class="ic">var</span>.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">types.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># All five primitive types</span>
+<span class="k">let</span> name    <span class="op">=</span> <span class="s">"Ram"</span>          <span class="c"># String</span>
+<span class="k">let</span> score   <span class="op">=</span> <span class="n">98.5</span>             <span class="c"># Number (integer or float)</span>
+<span class="k">let</span> active  <span class="op">=</span> <span class="k">true</span>             <span class="c"># Boolean</span>
+<span class="k">let</span> nothing <span class="op">=</span> <span class="k">null</span>             <span class="c"># Null</span>
+<span class="k">let</span> pending <span class="op">=</span> <span class="k">undefined</span>        <span class="c"># Undefined</span>
+
+<span class="f">log</span>(<span class="f">type</span>(name))   <span class="c"># "string"</span>
+<span class="f">log</span>(<span class="f">type</span>(score))  <span class="c"># "number"</span>
+<span class="f">log</span>(<span class="f">type</span>(active)) <span class="c"># "boolean"</span>
+<span class="f">log</span>(<span class="f">type</span>(nothing))<span class="c"># "null"</span></pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Comments</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Two comment styles are supported. Both are stripped before compilation.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># Hash comment — Python-style, can appear on its own line</span>
+<span class="k">let</span> x <span class="op">=</span> <span class="n">10</span>  <span class="c"># inline comment after a value token</span>
+
+<span class="c">// Double-slash comment — JavaScript-style</span>
+<span class="k">let</span> y <span class="op">=</span> <span class="n">20</span>  <span class="c">// also works inline</span></pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">String Literals</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Strings can use single quotes, double quotes, or backticks. Backtick strings support <strong class="text-white">interpolation</strong> with <span class="ic">{expression}</span>.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">strings.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> name <span class="op">=</span> <span class="s">"World"</span>
+<span class="k">let</span> count <span class="op">=</span> <span class="n">3</span>
+
+<span class="c"># Standard concatenation</span>
+<span class="f">log</span>(<span class="s">"Hello, "</span> <span class="op">+</span> name <span class="op">+</span> <span class="s">"!"</span>)
+
+<span class="c"># Backtick interpolation (cleaner for complex strings)</span>
+<span class="f">log</span>(<span class="s">`Hello, {name}! You have {count} messages.`</span>)
+
+<span class="c"># Escape sequences work in all string types</span>
+<span class="f">log</span>(<span class="s">"Line one\nLine two"</span>)
+<span class="f">log</span>(<span class="s">"Tab:\there"</span>)</pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-warning">
+                    <div class="text-yellow-300 font-semibold text-sm mb-1">Variable Scope</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">LIPI uses JavaScript's function-level scoping. Variables declared with <span class="ic">let</span> inside a block (<span class="ic">if</span>, <span class="ic">while</span>, <span class="ic">for</span>, <span class="ic">func</span>) are scoped to that block. Variables declared at the top level are available throughout the script execution.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: OPERATORS                           -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="operators" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="calculator" class="w-3 h-3"></i> 02 — Fundamentals</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Operators & Expressions</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    LIPI supports a comprehensive set of operators. Expressions follow standard mathematical precedence rules, and all operators are parsed by the Pratt parser for correct associativity.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="glass-card rounded-xl overflow-hidden">
+                        <div class="code-header"><span class="code-filename">Arithmetic</span></div>
+                        <div class="p-4 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> a <span class="op">=</span> <span class="n">10</span>
+<span class="k">let</span> b <span class="op">=</span> <span class="n">3</span>
+
+<span class="f">log</span>(a <span class="op">+</span> b)   <span class="c"># 13  — addition</span>
+<span class="f">log</span>(a <span class="op">-</span> b)   <span class="c"># 7   — subtraction</span>
+<span class="f">log</span>(a <span class="op">*</span> b)   <span class="c"># 30  — multiplication</span>
+<span class="f">log</span>(a <span class="op">/</span> b)   <span class="c"># 3.33 — division</span>
+<span class="f">log</span>(a <span class="op">%</span> b)   <span class="c"># 1   — modulo</span>
+<span class="f">log</span>(a <span class="op">//</span> b)  <span class="c"># 3   — floor division</span>
+<span class="f">log</span>(a <span class="op">**</span> b)  <span class="c"># 1000 — exponentiation</span></pre>
+                        </div>
+                    </div>
+                    <div class="glass-card rounded-xl overflow-hidden">
+                        <div class="code-header"><span class="code-filename">Comparison & Logical</span></div>
+                        <div class="p-4 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> x <span class="op">=</span> <span class="n">5</span>
+
+<span class="f">log</span>(x <span class="op">==</span> <span class="n">5</span>)   <span class="c"># true  — strict equal</span>
+<span class="f">log</span>(x <span class="op">!=</span> <span class="n">3</span>)   <span class="c"># true  — not equal</span>
+<span class="f">log</span>(x <span class="op">&gt;</span> <span class="n">3</span>)    <span class="c"># true  — greater</span>
+<span class="f">log</span>(x <span class="op">&lt;=</span> <span class="n">5</span>)   <span class="c"># true  — less or equal</span>
+
+<span class="f">log</span>(x <span class="op">&gt;</span> <span class="n">3</span> <span class="k">and</span> x <span class="op">&lt;</span> <span class="n">10</span>) <span class="c"># true</span>
+<span class="f">log</span>(x <span class="op">==</span> <span class="n">1</span> <span class="k">or</span>  x <span class="op">==</span> <span class="n">5</span>) <span class="c"># true</span>
+<span class="f">log</span>(<span class="k">not</span> <span class="k">false</span>)           <span class="c"># true</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3">Assignment Operators</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">assignment.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> n <span class="op">=</span> <span class="n">10</span>
+
+n <span class="op">+=</span> <span class="n">5</span>   <span class="c"># n = 15  (add and assign)</span>
+n <span class="op">-=</span> <span class="n">3</span>   <span class="c"># n = 12  (subtract and assign)</span>
+n <span class="op">*=</span> <span class="n">2</span>   <span class="c"># n = 24  (multiply and assign)</span>
+n <span class="op">//=</span> <span class="n">5</span>  <span class="c"># n = 4   (floor-divide and assign)</span>
+n <span class="op">**=</span> <span class="n">3</span>  <span class="c"># n = 64  (exponentiate and assign)</span>
+n <span class="op">%=</span> <span class="n">10</span>  <span class="c"># n = 4   (modulo and assign)</span>
+<span class="f">log</span>(n)</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3">Increment / Decrement</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">increment.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> i <span class="op">=</span> <span class="n">0</span>
+i<span class="op">++</span>        <span class="c"># postfix increment: i = 1</span>
+i<span class="op">++</span>        <span class="c"># i = 2</span>
+<span class="op">--</span>i        <span class="c"># prefix decrement: i = 1</span>
+<span class="f">log</span>(i)     <span class="c"># 1</span></pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3">Ternary Expression</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">LIPI uses Python-style ternary syntax: <span class="ic">value_if_true if condition else value_if_false</span>.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">ternary.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> age    <span class="op">=</span> <span class="n">20</span>
+<span class="k">let</span> status <span class="op">=</span> <span class="s">"adult"</span> <span class="k">if</span> age <span class="op">&gt;=</span> <span class="n">18</span> <span class="k">else</span> <span class="s">"minor"</span>
+<span class="f">log</span>(status) <span class="c"># "adult"</span>
+
+<span class="k">let</span> score <span class="op">=</span> <span class="n">72</span>
+<span class="k">let</span> grade <span class="op">=</span> <span class="s">"A"</span> <span class="k">if</span> score <span class="op">&gt;=</span> <span class="n">90</span> <span class="k">else</span> <span class="s">"B"</span> <span class="k">if</span> score <span class="op">&gt;=</span> <span class="n">70</span> <span class="k">else</span> <span class="s">"C"</span>
+<span class="f">log</span>(grade) <span class="c"># "B"</span></pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3">Operator Precedence</h3>
+                <div class="glass-card rounded-xl overflow-hidden">
+                    <table class="prop-table w-full">
+                        <thead><tr class="text-left"><th>Precedence</th><th>Operator(s)</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td>7 (highest)</td><td>**</td><td>Exponentiation (right-associative)</td></tr>
+                            <tr><td>6</td><td>* / % //</td><td>Multiply, divide, modulo, floor division</td></tr>
+                            <tr><td>5</td><td>+ -</td><td>Addition, subtraction</td></tr>
+                            <tr><td>4</td><td>&lt; &lt;= &gt; &gt;=</td><td>Comparison</td></tr>
+                            <tr><td>3</td><td>== !=</td><td>Equality (strict)</td></tr>
+                            <tr><td>2</td><td>and</td><td>Logical AND</td></tr>
+                            <tr><td>1 (lowest)</td><td>or</td><td>Logical OR</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: CONTROL FLOW                        -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="control" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="git-branch" class="w-3 h-3"></i> 02 — Fundamentals</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Control Flow</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    LIPI supports <span class="ic">if</span>, <span class="ic">else if</span>, and <span class="ic">else</span>. Curly braces <span class="ic">{}</span> are always required around blocks. The condition does not need parentheses.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">control.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> temp <span class="op">=</span> <span class="n">22</span>
+
+<span class="k">if</span> temp <span class="op">&gt;</span> <span class="n">35</span> {
+  <span class="f">log</span>(<span class="s">"Extreme heat warning"</span>)
+} <span class="k">else if</span> temp <span class="op">&gt;</span> <span class="n">25</span> {
+  <span class="f">log</span>(<span class="s">"Warm day"</span>)
+} <span class="k">else if</span> temp <span class="op">&gt;</span> <span class="n">15</span> {
+  <span class="f">log</span>(<span class="s">"Comfortable temperature"</span>)
+} <span class="k">else</span> {
+  <span class="f">log</span>(<span class="s">"Cold conditions"</span>)
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Compound Conditions</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">logic.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> user   <span class="op">=</span> <span class="s">"Ram"</span>
+<span class="k">let</span> role   <span class="op">=</span> <span class="s">"admin"</span>
+<span class="k">let</span> active <span class="op">=</span> <span class="k">true</span>
+
+<span class="k">if</span> active <span class="k">and</span> role <span class="op">==</span> <span class="s">"admin"</span> {
+  <span class="f">log</span>(<span class="s">"Access granted to "</span> <span class="op">+</span> user)
+}
+
+<span class="k">if</span> role <span class="op">==</span> <span class="s">"guest"</span> <span class="k">or</span> <span class="k">not</span> active {
+  <span class="f">log</span>(<span class="s">"Limited access"</span>)
+} <span class="k">else</span> {
+  <span class="f">log</span>(<span class="s">"Full access"</span>)
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Assert</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Use <span class="ic">assert</span> for defensive programming. If the condition is false, an error is thrown immediately with an optional message.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">assert.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> balance <span class="op">=</span> <span class="n">100</span>
+
+<span class="c"># Will pass — balance is positive</span>
+<span class="k">assert</span> balance <span class="op">&gt;</span> <span class="n">0</span>, <span class="s">"Balance must be positive"</span>
+
+<span class="k">let</span> items <span class="op">=</span> [<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>]
+<span class="k">assert</span> <span class="f">len</span>(items) <span class="op">==</span> <span class="n">3</span>
+
+<span class="f">log</span>(<span class="s">"All assertions passed"</span>)</pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-info">
+                    <div class="text-blue-300 font-semibold text-sm mb-1">typeof operator</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">Use <span class="ic">typeof x</span> to inspect the runtime type of a value. Returns <span class="ic">"string"</span>, <span class="ic">"number"</span>, <span class="ic">"boolean"</span>, <span class="ic">"object"</span>, <span class="ic">"undefined"</span>, or <span class="ic">"function"</span>. For arrays and null, use the <span class="ic-b">type()</span> builtin instead, which returns <span class="ic">"array"</span> and <span class="ic">"null"</span> correctly.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: LOOPS                               -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="loops" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="repeat" class="w-3 h-3"></i> 02 — Fundamentals</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Loops</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    LIPI has two loop constructs: <span class="ic">while</span> for condition-based iteration, and <span class="ic">for...in</span> for iterating over collections. Both support <span class="ic">break</span> and <span class="ic">continue</span>.
+                </p>
+
+                <h3 class="text-lg font-bold text-white mb-3">While Loop</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">while.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> fuel <span class="op">=</span> <span class="n">5</span>
+
+<span class="k">while</span> fuel <span class="op">&gt;</span> <span class="n">0</span> {
+  <span class="f">log</span>(<span class="s">"Fuel remaining: "</span> <span class="op">+</span> fuel)
+  fuel<span class="op">--</span>
+  <span class="k">wait</span>(<span class="n">200</span>)
+}
+<span class="f">log</span>(<span class="s">"Tank empty."</span>)</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">For-In: Arrays</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">When the iterable is an array or string, <span class="ic">for x in collection</span> iterates over the <strong class="text-white">values</strong>.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">for-array.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> planets <span class="op">=</span> [<span class="s">"Mercury"</span>, <span class="s">"Venus"</span>, <span class="s">"Earth"</span>, <span class="s">"Mars"</span>]
+
+<span class="k">for</span> planet <span class="k">in</span> planets {
+  <span class="f">log</span>(<span class="s">"Planet: "</span> <span class="op">+</span> planet)
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">For-In: Objects</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">When the iterable is an object, <span class="ic">for k in obj</span> iterates over the <strong class="text-white">keys</strong> (property names).</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">for-object.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> config <span class="op">=</span> {host: <span class="s">"localhost"</span>, port: <span class="n">8080</span>, debug: <span class="k">true</span>}
+
+<span class="k">for</span> key <span class="k">in</span> config {
+  <span class="f">log</span>(key <span class="op">+</span> <span class="s">" = "</span> <span class="op">+</span> config[key])
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">For-In: Numbers (Range Shorthand)</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">When the iterable is a number <span class="ic">n</span>, it iterates from <span class="ic">0</span> to <span class="ic">n-1</span>. For custom ranges, use the <span class="ic-b">range()</span> builtin.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">for-range.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># Iterate 0..4</span>
+<span class="k">for</span> i <span class="k">in</span> <span class="n">5</span> {
+  <span class="f">log</span>(<span class="s">"i = "</span> <span class="op">+</span> i)
+}
+
+<span class="c"># range(start, end)  — does NOT include end</span>
+<span class="k">for</span> n <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, <span class="n">6</span>) {
+  <span class="f">log</span>(n)
+}
+
+<span class="c"># range(start, end, step)</span>
+<span class="k">for</span> x <span class="k">in</span> <span class="f">range</span>(<span class="n">0</span>, <span class="n">10</span>, <span class="n">2</span>) {
+  <span class="f">log</span>(x) <span class="c"># 0, 2, 4, 6, 8</span>
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Break & Continue</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">break-continue.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># break — exit the loop early</span>
+<span class="k">for</span> i <span class="k">in</span> <span class="n">10</span> {
+  <span class="k">if</span> i <span class="op">==</span> <span class="n">4</span> { <span class="k">break</span> }
+  <span class="f">log</span>(<span class="s">"i = "</span> <span class="op">+</span> i) <span class="c"># logs 0, 1, 2, 3</span>
+}
+
+<span class="c"># continue — skip the rest of this iteration</span>
+<span class="k">for</span> n <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, <span class="n">8</span>) {
+  <span class="k">if</span> n <span class="op">%</span> <span class="n">2</span> <span class="op">==</span> <span class="n">0</span> { <span class="k">continue</span> }
+  <span class="f">log</span>(n) <span class="c"># logs 1, 3, 5, 7</span>
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: FUNCTIONS                           -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="functions" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="function-square" class="w-3 h-3"></i> 02 — Fundamentals</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Functions</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    Functions are declared with <span class="ic">func</span>. They can accept parameters and return a value with <span class="ic">return</span>. All user-declared functions are internally <span class="ic">async</span>, which means they can call <span class="ic">wait()</span> and other async functions freely.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">functions.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># Basic function with parameters and return</span>
+<span class="k">func</span> <span class="f">add</span>(a, b) {
+  <span class="k">return</span> a <span class="op">+</span> b
+}
+
+<span class="c"># Functions can return any type</span>
+<span class="k">func</span> <span class="f">greet</span>(name) {
+  <span class="k">return</span> <span class="s">"Hello, "</span> <span class="op">+</span> name <span class="op">+</span> <span class="s">"!"</span>
+}
+
+<span class="c"># Functions without return implicitly return undefined</span>
+<span class="k">func</span> <span class="f">printLine</span>(msg) {
+  <span class="f">log</span>(<span class="s">"[LOG] "</span> <span class="op">+</span> msg)
+}
+
+<span class="k">let</span> sum <span class="op">=</span> <span class="f">add</span>(<span class="n">12</span>, <span class="n">8</span>)
+<span class="f">log</span>(sum)                 <span class="c"># 20</span>
+<span class="f">log</span>(<span class="f">greet</span>(<span class="s">"Ram"</span>))     <span class="c"># "Hello, Ram!"</span>
+<span class="f">printLine</span>(<span class="s">"test"</span>)</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Recursive Functions</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">recursion.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">func</span> <span class="f">factorial</span>(n) {
+  <span class="k">if</span> n <span class="op">&lt;=</span> <span class="n">1</span> { <span class="k">return</span> <span class="n">1</span> }
+  <span class="k">return</span> n <span class="op">*</span> <span class="f">factorial</span>(n <span class="op">-</span> <span class="n">1</span>)
+}
+
+<span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, <span class="n">8</span>) {
+  <span class="f">log</span>(<span class="s">`{i}! = {factorial(i)}`</span>)
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Functions with Async Logic</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Because all <span class="ic">func</span> declarations are async, they can freely call <span class="ic">wait()</span> and other user-defined functions without any special syntax.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">async-func.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">func</span> <span class="f">countdown</span>(from) {
+  <span class="k">let</span> n <span class="op">=</span> from
+  <span class="k">while</span> n <span class="op">&gt;</span> <span class="n">0</span> {
+    <span class="f">log</span>(<span class="s">"T-minus: "</span> <span class="op">+</span> n)
+    <span class="k">wait</span>(<span class="n">400</span>)
+    n<span class="op">--</span>
+  }
+  <span class="f">log</span>(<span class="s">"🚀 Liftoff!"</span>)
+}
+
+<span class="f">countdown</span>(<span class="n">5</span>)</pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-warning">
+                    <div class="text-yellow-300 font-semibold text-sm mb-1">Hoisting Limitation</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">LIPI functions are declared sequentially. You must declare a function <strong class="text-white">before</strong> calling it in top-level code. Mutual recursion (two functions calling each other) works because the compiler registers all declared function names before generating call sites.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: ARRAYS                              -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="arrays" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="list" class="w-3 h-3"></i> 03 — Data Structures</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Arrays</h2>
+                <p class="text-lipi-text mb-6 leading-7">Arrays are ordered, zero-indexed, mutable collections. They can hold any mix of types. Use <span class="ic">[]</span> to create an array and <span class="ic">arr[i]</span> for indexed access.</p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">arrays.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> scores <span class="op">=</span> [<span class="n">95</span>, <span class="n">87</span>, <span class="n">62</span>, <span class="n">78</span>, <span class="n">91</span>]
+
+<span class="c"># Index access (zero-based)</span>
+<span class="f">log</span>(scores[<span class="n">0</span>])          <span class="c"># 95</span>
+<span class="f">log</span>(scores[<span class="f">len</span>(scores) <span class="op">-</span> <span class="n">1</span>]) <span class="c"># 91 (last element)</span>
+
+<span class="c"># Mutation</span>
+scores[<span class="n">2</span>] <span class="op">=</span> <span class="n">70</span>
+<span class="f">log</span>(scores)
+
+<span class="c"># Array size</span>
+<span class="f">log</span>(<span class="s">"Count: "</span> <span class="op">+</span> <span class="f">len</span>(scores))
+
+<span class="c"># Append / pop</span>
+<span class="f">append</span>(scores, <span class="n">100</span>)
+<span class="f">log</span>(scores)
+<span class="f">pop</span>(scores)
+<span class="f">log</span>(scores)</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Functional Operations</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">array-ops.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> nums <span class="op">=</span> [<span class="n">3</span>, <span class="n">1</span>, <span class="n">4</span>, <span class="n">1</span>, <span class="n">5</span>, <span class="n">9</span>, <span class="n">2</span>, <span class="n">6</span>]
+
+<span class="f">log</span>(<span class="f">sum</span>(nums))                   <span class="c"># 31</span>
+<span class="f">log</span>(<span class="f">avg</span>(nums))                   <span class="c"># 3.875</span>
+<span class="f">log</span>(<span class="f">max</span>(nums))                   <span class="c"># 9</span>
+<span class="f">log</span>(<span class="f">min</span>(nums))                   <span class="c"># 1</span>
+<span class="f">log</span>(<span class="f">sort</span>(nums))                  <span class="c"># [1, 1, 2, 3, 4, 5, 6, 9]</span>
+<span class="f">log</span>(<span class="f">reverse</span>(nums))               <span class="c"># reversed copy</span>
+<span class="f">log</span>(<span class="f">includes</span>(nums, <span class="n">9</span>))          <span class="c"># true</span>
+<span class="f">log</span>(<span class="f">indexOf</span>(nums, <span class="n">4</span>))           <span class="c"># 2</span>
+<span class="f">log</span>(<span class="f">slice</span>(nums, <span class="n">2</span>, <span class="n">5</span>))          <span class="c"># [4, 1, 5]</span>
+<span class="f">log</span>(<span class="f">join</span>(nums, <span class="s">", "</span>))            <span class="c"># "3, 1, 4, ..."</span></pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-info">
+                    <div class="text-blue-300 font-semibold text-sm mb-1">Copying Arrays</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">Arrays are reference types. Assigning <span class="ic">let b = a</span> makes both variables point to the same array. To create an independent copy, use <span class="ic-b">copy(arr)</span> for a shallow copy or <span class="ic-b">deepCopy(arr)</span> for a deep copy of nested structures.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: OBJECTS                             -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="objects" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="braces" class="w-3 h-3"></i> 03 — Data Structures</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Objects</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    Objects are unordered key-value maps. Keys are strings. Values can be any type, including nested objects or arrays. Use dot notation for static keys and bracket notation for dynamic or computed keys.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">objects.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> user <span class="op">=</span> {
+  name:    <span class="s">"ram"</span>,
+  age:     <span class="n">30</span>,
+  roles:   [<span class="s">"editor"</span>, <span class="s">"viewer"</span>],
+  address: { city: <span class="s">"Mumbai"</span>, zip: <span class="s">"400001"</span> }
+}
+
+<span class="c"># Dot notation</span>
+<span class="f">log</span>(user.name)
+<span class="f">log</span>(user.address.city)
+
+<span class="c"># Bracket notation (dynamic key)</span>
+<span class="k">let</span> field <span class="op">=</span> <span class="s">"age"</span>
+<span class="f">log</span>(user[field])
+
+<span class="c"># Mutation</span>
+user.age <span class="op">=</span> <span class="n">31</span>
+user[<span class="s">"email"</span>] <span class="op">=</span> <span class="s">"ram@example.com"</span>
+
+<span class="c"># Delete a property</span>
+<span class="k">delete</span> user.address
+
+<span class="c"># Enumerate keys</span>
+<span class="k">for</span> key <span class="k">in</span> user {
+  <span class="f">log</span>(<span class="s">`{key}: {user[key]}`</span>)
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Object Inspection</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">object-utils.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> config <span class="op">=</span> {host: <span class="s">"localhost"</span>, port: <span class="n">3000</span>, ssl: <span class="k">false</span>}
+
+<span class="f">log</span>(<span class="f">keys</span>(config))           <span class="c"># ["host", "port", "ssl"]</span>
+<span class="f">log</span>(<span class="f">values</span>(config))         <span class="c"># ["localhost", 3000, false]</span>
+<span class="f">log</span>(<span class="f">len</span>(config))            <span class="c"># 3</span>
+<span class="f">log</span>(<span class="f">has</span>(config, <span class="s">"port"</span>))   <span class="c"># true</span>
+<span class="f">log</span>(<span class="f">has</span>(config, <span class="s">"auth"</span>))   <span class="c"># false</span>
+
+<span class="c"># Merge two objects (non-destructive)</span>
+<span class="k">let</span> override <span class="op">=</span> {port: <span class="n">443</span>, ssl: <span class="k">true</span>}
+<span class="k">let</span> final    <span class="op">=</span> <span class="f">merge</span>(config, override)
+<span class="f">log</span>(final)</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">JSON Serialization</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">json.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> data <span class="op">=</span> {name: <span class="s">"Ram"</span>, scores: [<span class="n">90</span>, <span class="n">85</span>, <span class="n">92</span>]}
+
+<span class="c"># Serialize to JSON string</span>
+<span class="k">let</span> json <span class="op">=</span> <span class="f">toJSON</span>(data)
+<span class="f">log</span>(json)
+
+<span class="c"># Parse back from string</span>
+<span class="k">let</span> restored <span class="op">=</span> <span class="f">fromJSON</span>(json)
+<span class="f">log</span>(restored.name)</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: DOM SELECTION                       -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="dom" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="layout" class="w-3 h-3"></i> 04 — Web Engine</div>
+                <h2 class="text-2xl font-bold text-white mb-4">DOM Selection</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    LIPI provides two syntaxes for selecting DOM elements. Both search within the preview container first, then fall back to the full document.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="glass-card p-5 rounded-xl">
+                        <div class="text-xs text-lipi-muted font-mono mb-2">Shorthand (recommended)</div>
+                        <code class="text-yellow-300 font-mono text-sm">#elementId</code>
+                        <p class="text-xs text-lipi-text mt-2 leading-relaxed">Prefix-hash notation. Selects by element ID. The <span class="ic">#</span> is a language-level token that compiles to a DOM lookup.</p>
+                        <div class="mt-3 bg-[#050505] p-3 rounded"><pre class="code-block text-xs"><span class="k">let</span> btn <span class="op">=</span> <span class="sel">#submit-btn</span></pre></div>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl">
+                        <div class="text-xs text-lipi-muted font-mono mb-2">Function call (flexible)</div>
+                        <code class="text-yellow-300 font-mono text-sm">$("selector")</code>
+                        <p class="text-xs text-lipi-text mt-2 leading-relaxed">Accepts any CSS selector string — IDs, classes, attributes, or compound selectors.</p>
+                        <div class="mt-3 bg-[#050505] p-3 rounded"><pre class="code-block text-xs"><span class="k">let</span> btn <span class="op">=</span> <span class="f">$</span>(<span class="s">"#submit-btn"</span>)</pre></div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header"><span class="code-filename">dom-selection.lipi</span></div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># Shorthand selector — compiles to document.getElementById("title")</span>
+<span class="k">let</span> title <span class="op">=</span> <span class="sel">#page-title</span>
+
+<span class="c"># Always check if the element was found before using it</span>
+<span class="k">if</span> title <span class="op">==</span> <span class="k">null</span> {
+  <span class="f">log</span>(<span class="s">"Element not found!"</span>)
+} <span class="k">else</span> {
+  <span class="f">log</span>(<span class="s">"Found: "</span> <span class="op">+</span> title.id)
+}
+
+<span class="c"># Select multiple elements by CSS class</span>
+<span class="k">let</span> cards <span class="op">=</span> <span class="f">queryAll</span>(<span class="s">".card"</span>)
+<span class="f">log</span>(<span class="s">"Found "</span> <span class="op">+</span> <span class="f">len</span>(cards) <span class="op">+</span> <span class="s">" cards"</span>)</pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-warning">
+                    <div class="text-yellow-300 font-semibold text-sm mb-1">Selector Scope</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">In LIPI Studio, selectors search the <strong class="text-white">Live Preview</strong> pane first. Elements in your <span class="ic">index.html</span> tab are the ones accessible at runtime. Elements in the editor UI itself are not targeted.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: STYLES & CONTENT                    -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="manipulation" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="paintbrush" class="w-3 h-3"></i> 04 — Web Engine</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Styles & Content</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    Once you have a reference to a DOM element, you can read and write its content and styles directly. LIPI also provides convenience <strong class="text-white">style shortcut aliases</strong> so you can write <span class="ic">box.style.bg</span> instead of <span class="ic">box.style.backgroundColor</span>.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header"><span class="code-filename">manipulation.lipi</span></div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> card <span class="op">=</span> <span class="sel">#my-card</span>
+
+<span class="c"># Content</span>
+card.innerText  <span class="op">=</span> <span class="s">"Updated text"</span>
+card.innerHTML  <span class="op">=</span> <span class="s">"&lt;strong&gt;Bold&lt;/strong&gt; content"</span>
+
+<span class="c"># Style — standard CSS property names</span>
+card.style.backgroundColor <span class="op">=</span> <span class="s">"#7c3aed"</span>
+card.style.fontSize         <span class="op">=</span> <span class="s">"18px"</span>
+card.style.display          <span class="op">=</span> <span class="s">"none"</span>
+
+<span class="c"># Style — LIPI shorthand aliases (same result)</span>
+card.style.bg      <span class="op">=</span> <span class="s">"#7c3aed"</span>   <span class="c"># backgroundColor</span>
+card.style.fg      <span class="op">=</span> <span class="s">"white"</span>      <span class="c"># color</span>
+card.style.size    <span class="op">=</span> <span class="s">"18px"</span>       <span class="c"># fontSize</span>
+card.style.radius  <span class="op">=</span> <span class="s">"12px"</span>       <span class="c"># borderRadius</span>
+card.style.shadow  <span class="op">=</span> <span class="s">"0 4px 12px rgba(0,0,0,.4)"</span></pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-6">Full Style Shortcut Reference</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <table class="prop-table w-full">
+                        <thead><tr class="text-left"><th>LIPI Shortcut</th><th>CSS Property</th><th>Example Value</th></tr></thead>
+                        <tbody>
+                            <tr><td>style.bg</td><td>backgroundColor</td><td>"#7c3aed" or "red"</td></tr>
+                            <tr><td>style.fg</td><td>color</td><td>"white" or "#fff"</td></tr>
+                            <tr><td>style.size</td><td>fontSize</td><td>"16px" or "1.2em"</td></tr>
+                            <tr><td>style.weight</td><td>fontWeight</td><td>"bold" or "600"</td></tr>
+                            <tr><td>style.radius</td><td>borderRadius</td><td>"8px" or "50%"</td></tr>
+                            <tr><td>style.shadow</td><td>boxShadow</td><td>"0 4px 12px rgba(0,0,0,.3)"</td></tr>
+                            <tr><td>style.opacity</td><td>opacity</td><td>"0.5" or "1"</td></tr>
+                            <tr><td>style.cursor</td><td>cursor</td><td>"pointer" or "default"</td></tr>
+                            <tr><td>style.transition</td><td>transition</td><td>"all 0.3s ease"</td></tr>
+                            <tr><td>style.display</td><td>display</td><td>"flex", "none", "block"</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">DOM Helper Functions</h3>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header"><span class="code-filename">dom-helpers.lipi</span></div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> el <span class="op">=</span> <span class="sel">#status</span>
+
+<span class="c"># Text and HTML content helpers</span>
+<span class="f">setText</span>(el, <span class="s">"Hello World"</span>)     <span class="c"># sets innerText safely</span>
+<span class="f">setHTML</span>(el, <span class="s">"&lt;em&gt;italic&lt;/em&gt;"</span>) <span class="c"># sets innerHTML</span>
+
+<span class="c"># Visibility</span>
+<span class="f">show</span>(el)   <span class="c"># removes display:none</span>
+<span class="f">hide</span>(el)   <span class="c"># sets display:none</span>
+
+<span class="c"># CSS class management</span>
+<span class="f">addClass</span>(el, <span class="s">"active"</span>)
+<span class="f">removeClass</span>(el, <span class="s">"inactive"</span>)
+<span class="f">toggleClass</span>(el, <span class="s">"highlighted"</span>)
+
+<span class="c"># Clear content</span>
+<span class="f">clear</span>(el)</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: EVENTS                              -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="events" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="zap" class="w-3 h-3"></i> 04 — Web Engine</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Events</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    The <span class="ic">on</span> keyword binds an event listener to a DOM element. The syntax is <span class="ic">on target.eventName { ... }</span>. The target must be a variable holding a DOM element, or the <span class="ic">#id</span> shorthand used directly.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header"><span class="code-filename">events.lipi</span></div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> btn   <span class="op">=</span> <span class="sel">#action-btn</span>
+<span class="k">let</span> input <span class="op">=</span> <span class="sel">#text-input</span>
+
+<span class="c"># Click event</span>
+<span class="k">on</span> btn.click {
+  <span class="f">log</span>(<span class="s">"Button was clicked"</span>)
+}
+
+<span class="c"># Mouse enter/leave</span>
+<span class="k">on</span> btn.mouseenter {
+  btn.style.bg <span class="op">=</span> <span class="s">"#5b21b6"</span>
+}
+<span class="k">on</span> btn.mouseleave {
+  btn.style.bg <span class="op">=</span> <span class="s">"#7c3aed"</span>
+}
+
+<span class="c"># Input change</span>
+<span class="k">on</span> input.input {
+  <span class="f">log</span>(<span class="s">"Value: "</span> <span class="op">+</span> input.value)
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Async Inside Events</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Event handlers are automatically async, so <span class="ic">wait()</span> and user functions work seamlessly inside them.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header"><span class="code-filename">async-event.lipi</span></div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> box   <span class="op">=</span> <span class="sel">#demo-box</span>
+<span class="k">let</span> count <span class="op">=</span> <span class="n">0</span>
+
+<span class="k">on</span> box.click {
+  count<span class="op">++</span>
+  box.innerText <span class="op">=</span> <span class="s">"Processing..."</span>
+  box.style.bg  <span class="op">=</span> <span class="s">"#f59e0b"</span>
+
+  <span class="k">wait</span>(<span class="n">500</span>)
+
+  box.innerText <span class="op">=</span> <span class="s">"Done! (click "</span> <span class="op">+</span> count <span class="op">+</span> <span class="s">")"</span>
+  box.style.bg  <span class="op">=</span> <span class="s">"#10b981"</span>
+
+  <span class="k">wait</span>(<span class="n">800</span>)
+  box.style.bg  <span class="op">=</span> <span class="s">"#7c3aed"</span>
+  box.innerText <span class="op">=</span> <span class="s">"Click Me"</span>
+}</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-6">Common Event Names</h3>
+                <div class="glass-card rounded-xl overflow-hidden">
+                    <table class="prop-table w-full">
+                        <thead><tr class="text-left"><th>Event</th><th>Trigger</th></tr></thead>
+                        <tbody>
+                            <tr><td>click</td><td>Mouse click or touch tap</td></tr>
+                            <tr><td>mouseenter / mouseleave</td><td>Mouse enters or leaves element bounds</td></tr>
+                            <tr><td>mouseover / mouseout</td><td>Mouse over (includes children)</td></tr>
+                            <tr><td>input</td><td>Input field value changes</td></tr>
+                            <tr><td>change</td><td>Input loses focus after changing</td></tr>
+                            <tr><td>keydown / keyup</td><td>Keyboard key pressed/released</td></tr>
+                            <tr><td>submit</td><td>Form is submitted</td></tr>
+                            <tr><td>focus / blur</td><td>Element receives/loses focus</td></tr>
+                            <tr><td>scroll</td><td>Element is scrolled</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: ASYNC                               -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="async" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="timer" class="w-3 h-3"></i> 05 — Async & IO</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Async & wait()</h2>
+                <p class="text-lipi-text mb-5 leading-7">
+                    <span class="ic">wait(ms)</span> pauses code execution for the given number of milliseconds. Unlike JavaScript's <span class="ic">setTimeout</span>, it feels synchronous — the next line of code runs only after the wait completes. This is enabled by the async IIFE wrapper the code generator produces.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">async.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="f">log</span>(<span class="s">"Starting process..."</span>)
+<span class="k">wait</span>(<span class="n">600</span>)
+<span class="f">log</span>(<span class="s">"Step 1 complete"</span>)
+<span class="k">wait</span>(<span class="n">600</span>)
+<span class="f">log</span>(<span class="s">"Step 2 complete"</span>)
+<span class="k">wait</span>(<span class="n">600</span>)
+<span class="f">log</span>(<span class="s">"All done! ✅"</span>)</pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3 mt-8">Animated DOM Updates</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Combine <span class="ic">wait()</span> with DOM updates to build smooth animations and step-by-step visualizations directly in Lipi code.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">animation.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># Cycle through a color palette with delays</span>
+<span class="k">let</span> colors <span class="op">=</span> [<span class="s">"#ef4444"</span>, <span class="s">"#f59e0b"</span>, <span class="s">"#10b981"</span>, <span class="s">"#3b82f6"</span>, <span class="s">"#8b5cf6"</span>]
+<span class="k">let</span> box    <span class="op">=</span> <span class="sel">#demo-box</span>
+
+<span class="k">for</span> c <span class="k">in</span> colors {
+  box.style.bg       <span class="op">=</span> c
+  box.innerText      <span class="op">=</span> c
+  <span class="k">wait</span>(<span class="n">400</span>)
+}
+box.innerText  <span class="op">=</span> <span class="s">"Done"</span></pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-info">
+                    <div class="text-blue-300 font-semibold text-sm mb-1">Mental Model: How wait() works</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">When LIPI compiles <span class="ic">wait(500)</span>, it emits <span class="ic">await __wait(500)</span> in JavaScript. The surrounding async IIFE pauses at this line for 500ms before continuing. The browser UI remains fully responsive during the pause — only your code is waiting, not the page.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: USER INPUT                          -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="input" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="terminal" class="w-3 h-3"></i> 05 — Async & IO</div>
+                <h2 class="text-2xl font-bold text-white mb-4">User Input</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    <span class="ic">getInput("prompt")</span> pauses execution and waits for the user to type something in the console. In the Studio, a live input field appears in the console panel. The function returns the entered string.
+                </p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">input.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> name <span class="op">=</span> <span class="k">getInput</span>(<span class="s">"What is your name?"</span>)
+<span class="f">log</span>(<span class="s">"Hello, "</span> <span class="op">+</span> name <span class="op">+</span> <span class="s">"!"</span>)
+
+<span class="k">let</span> numStr <span class="op">=</span> <span class="k">getInput</span>(<span class="s">"Enter a number:"</span>)
+<span class="k">let</span> num    <span class="op">=</span> <span class="f">int</span>(numStr)
+<span class="f">log</span>(<span class="s">"Squared: "</span> <span class="op">+</span> (num <span class="op">**</span> <span class="n">2</span>))</pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-warning">
+                    <div class="text-yellow-300 font-semibold text-sm mb-1">Input always returns a String</div>
+                    <p class="text-xs text-lipi-text leading-relaxed"><span class="ic">getInput()</span> always returns a string value. If you need to do arithmetic with the result, convert it first with <span class="ic-b">int()</span> or <span class="ic-b">float()</span>. Empty input returns an empty string <span class="ic">""</span>.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: MATH & NUMBERS                      -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="builtins-math" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="sigma" class="w-3 h-3"></i> 06 — Standard Library</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Math & Numbers</h2>
+                <p class="text-lipi-text mb-6 leading-7">All standard math operations are available as top-level functions. The global <span class="ic">Math</span> object is also accessible directly.</p>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">math.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="f">log</span>(<span class="f">abs</span>(<span class="op">-</span><span class="n">42</span>))            <span class="c"># 42</span>
+<span class="f">log</span>(<span class="f">floor</span>(<span class="n">3.9</span>))          <span class="c"># 3</span>
+<span class="f">log</span>(<span class="f">ceil</span>(<span class="n">3.1</span>))           <span class="c"># 4</span>
+<span class="f">log</span>(<span class="f">round</span>(<span class="n">3.567</span>, <span class="n">2</span>))    <span class="c"># 3.57</span>
+<span class="f">log</span>(<span class="f">sqrt</span>(<span class="n">144</span>))           <span class="c"># 12</span>
+<span class="f">log</span>(<span class="f">pow</span>(<span class="n">2</span>, <span class="n">10</span>))          <span class="c"># 1024</span>
+<span class="f">log</span>(<span class="f">max</span>(<span class="n">10</span>, <span class="n">3</span>, <span class="n">7</span>))      <span class="c"># 10</span>
+<span class="f">log</span>(<span class="f">min</span>(<span class="n">10</span>, <span class="n">3</span>, <span class="n">7</span>))      <span class="c"># 3</span>
+<span class="f">log</span>(<span class="f">random</span>(<span class="n">1</span>, <span class="n">100</span>))     <span class="c"># random integer in [1, 99]</span>
+<span class="f">log</span>(<span class="f">random</span>())            <span class="c"># float in [0, 1)</span>
+
+<span class="c"># Constants</span>
+<span class="f">log</span>(PI)                  <span class="c"># 3.141592653589793</span>
+<span class="f">log</span>(E)                   <span class="c"># 2.718281828459045</span></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: STRING HELPERS                      -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="builtins-string" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="type" class="w-3 h-3"></i> 06 — Standard Library</div>
+                <h2 class="text-2xl font-bold text-white mb-4">String Helpers</h2>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">strings.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> msg <span class="op">=</span> <span class="s">"  Hello, World!  "</span>
+
+<span class="f">log</span>(<span class="f">trim</span>(msg))              <span class="c"># "Hello, World!"</span>
+<span class="f">log</span>(<span class="f">upper</span>(msg))             <span class="c"># "  HELLO, WORLD!  "</span>
+<span class="f">log</span>(<span class="f">lower</span>(msg))             <span class="c"># "  hello, world!  "</span>
+<span class="f">log</span>(<span class="f">replace</span>(msg, <span class="s">"World"</span>, <span class="s">"LIPI"</span>))  <span class="c"># "  Hello, LIPI!  "</span>
+<span class="f">log</span>(<span class="f">len</span>(msg))               <span class="c"># 18</span>
+
+<span class="k">let</span> csv <span class="op">=</span> <span class="s">"one,two,three"</span>
+<span class="k">let</span> parts <span class="op">=</span> <span class="f">split</span>(csv, <span class="s">","</span>)
+<span class="f">log</span>(parts)                  <span class="c"># ["one", "two", "three"]</span>
+<span class="f">log</span>(<span class="f">join</span>(parts, <span class="s">" | "</span>))    <span class="c"># "one | two | three"</span>
+
+<span class="f">log</span>(<span class="f">startsWith</span>(csv, <span class="s">"one"</span>)) <span class="c"># true</span>
+<span class="f">log</span>(<span class="f">contains</span>(csv, <span class="s">"two"</span>))   <span class="c"># true</span>
+<span class="f">log</span>(<span class="f">repeat</span>(<span class="s">"ab"</span>, <span class="n">3</span>))        <span class="c"># "ababab"</span></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: ARRAY HELPERS                       -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="builtins-array" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="list-ordered" class="w-3 h-3"></i> 06 — Standard Library</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Array Helpers</h2>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <table class="prop-table w-full">
+                        <thead><tr class="text-left"><th>Function</th><th>Returns</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td>len(arr)</td><td>number</td><td>Number of elements</td></tr>
+                            <tr><td>append(arr, val)</td><td>array</td><td>Add to end (mutates)</td></tr>
+                            <tr><td>prepend(arr, val)</td><td>array</td><td>Add to start (mutates)</td></tr>
+                            <tr><td>pop(arr)</td><td>value</td><td>Remove and return last element</td></tr>
+                            <tr><td>remove(arr, idx)</td><td>—</td><td>Remove element at index</td></tr>
+                            <tr><td>slice(arr, a, b)</td><td>array</td><td>Extract sub-array [a, b)</td></tr>
+                            <tr><td>reverse(arr)</td><td>array</td><td>Returns reversed copy</td></tr>
+                            <tr><td>sort(arr)</td><td>array</td><td>Returns sorted copy</td></tr>
+                            <tr><td>includes(arr, val)</td><td>boolean</td><td>True if val is in array</td></tr>
+                            <tr><td>indexOf(arr, val)</td><td>number</td><td>First index of val, or -1</td></tr>
+                            <tr><td>find(arr, fn)</td><td>value</td><td>First element matching predicate</td></tr>
+                            <tr><td>filter(arr, fn)</td><td>array</td><td>All elements matching predicate</td></tr>
+                            <tr><td>map(arr, fn)</td><td>array</td><td>Transform each element</td></tr>
+                            <tr><td>flat(arr, depth)</td><td>array</td><td>Flatten nested arrays</td></tr>
+                            <tr><td>sum(arr)</td><td>number</td><td>Sum of all numeric elements</td></tr>
+                            <tr><td>avg(arr)</td><td>number</td><td>Average of all numeric elements</td></tr>
+                            <tr><td>copy(arr)</td><td>array</td><td>Shallow copy</td></tr>
+                            <tr><td>deepCopy(arr)</td><td>array</td><td>Deep copy (JSON-safe)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">array-funcs.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> data <span class="op">=</span> [<span class="n">4</span>, <span class="n">8</span>, <span class="n">15</span>, <span class="n">16</span>, <span class="n">23</span>, <span class="n">42</span>]
+
+<span class="c"># filter: keep only even numbers (using JS arrow syntax)</span>
+<span class="k">let</span> evens <span class="op">=</span> <span class="f">filter</span>(data, n <span class="op">=&gt;</span> n <span class="op">%</span> <span class="n">2</span> <span class="op">==</span> <span class="n">0</span>)
+<span class="f">log</span>(evens)  <span class="c"># [4, 8, 16, 42]</span>
+
+<span class="c"># map: double each value</span>
+<span class="k">let</span> doubled <span class="op">=</span> <span class="f">map</span>(data, n <span class="op">=&gt;</span> n <span class="op">*</span> <span class="n">2</span>)
+<span class="f">log</span>(doubled)
+
+<span class="c"># find: first value over 20</span>
+<span class="k">let</span> big <span class="op">=</span> <span class="f">find</span>(data, n <span class="op">=&gt;</span> n <span class="op">&gt;</span> <span class="n">20</span>)
+<span class="f">log</span>(big)    <span class="c"># 23</span></pre>
+                    </div>
+                </div>
+
+                <div class="callout callout-info">
+                    <div class="text-blue-300 font-semibold text-sm mb-1">Arrow Functions in Callbacks</div>
+                    <p class="text-xs text-lipi-text leading-relaxed">Functions like <span class="ic-b">filter()</span>, <span class="ic-b">map()</span>, and <span class="ic-b">find()</span> accept JavaScript arrow functions (<span class="ic">n =&gt; n * 2</span>) as callbacks. These are passed through verbatim to the compiled output, so standard JavaScript callback syntax is fully supported as function arguments.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: DOM HELPERS                         -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="builtins-dom" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="layout-dashboard" class="w-3 h-3"></i> 06 — Standard Library</div>
+                <h2 class="text-2xl font-bold text-white mb-4">DOM Helper Functions</h2>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <table class="prop-table w-full">
+                        <thead><tr class="text-left"><th>Function</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td>$(selector)</td><td>Select element by CSS selector</td></tr>
+                            <tr><td>queryAll(selector)</td><td>Select all matching elements (returns array)</td></tr>
+                            <tr><td>setText(el, text)</td><td>Set innerText safely</td></tr>
+                            <tr><td>setHTML(el, html)</td><td>Set innerHTML</td></tr>
+                            <tr><td>getText(el)</td><td>Get innerText</td></tr>
+                            <tr><td>getHTML(el)</td><td>Get innerHTML</td></tr>
+                            <tr><td>show(el)</td><td>Remove display:none</td></tr>
+                            <tr><td>hide(el)</td><td>Set display:none</td></tr>
+                            <tr><td>clear(el)</td><td>Empty innerHTML</td></tr>
+                            <tr><td>addClass(el, cls)</td><td>Add CSS class(es)</td></tr>
+                            <tr><td>removeClass(el, cls)</td><td>Remove CSS class(es)</td></tr>
+                            <tr><td>toggleClass(el, cls)</td><td>Toggle a CSS class</td></tr>
+                            <tr><td>hasClass(el, cls)</td><td>Check if class is present</td></tr>
+                            <tr><td>appendTo(parent, child)</td><td>Append child element to parent</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: TYPE CONVERSION                     -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="builtins-type" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="arrow-right-left" class="w-3 h-3"></i> 06 — Standard Library</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Type Conversion</h2>
+
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">types.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c"># int() — parse string to integer</span>
+<span class="k">let</span> n <span class="op">=</span> <span class="f">int</span>(<span class="s">"42"</span>)
+<span class="f">log</span>(n <span class="op">+</span> <span class="n">8</span>)          <span class="c"># 50</span>
+
+<span class="c"># float() — parse string to float</span>
+<span class="k">let</span> pi <span class="op">=</span> <span class="f">float</span>(<span class="s">"3.14159"</span>)
+<span class="f">log</span>(<span class="f">round</span>(pi, <span class="n">2</span>))   <span class="c"># 3.14</span>
+
+<span class="c"># str() — convert any value to string</span>
+<span class="k">let</span> s <span class="op">=</span> <span class="f">str</span>(<span class="n">99</span>)
+<span class="f">log</span>(<span class="f">type</span>(s))         <span class="c"># "string"</span>
+
+<span class="c"># bool() — convert to boolean</span>
+<span class="f">log</span>(<span class="f">bool</span>(<span class="n">0</span>))        <span class="c"># false</span>
+<span class="f">log</span>(<span class="f">bool</span>(<span class="s">""</span>))       <span class="c"># false</span>
+<span class="f">log</span>(<span class="f">bool</span>(<span class="s">"hello"</span>)) <span class="c"># true</span>
+
+<span class="c"># type() — returns type as string</span>
+<span class="f">log</span>(<span class="f">type</span>([<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>]))  <span class="c"># "array"</span>
+<span class="f">log</span>(<span class="f">type</span>(<span class="k">null</span>))     <span class="c"># "null"</span>
+<span class="f">log</span>(<span class="f">type</span>(<span class="k">true</span>))     <span class="c"># "boolean"</span></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: ERROR HANDLING                      -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="errors" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="alert-triangle" class="w-3 h-3"></i> 07 — Advanced</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Error Handling</h2>
+                <p class="text-lipi-text mb-6 leading-7">LIPI errors fall into three categories. All errors display in the Studio's console and as an overlay notification.</p>
+
+                <div class="space-y-4 mb-8">
+                    <div class="glass-card p-5 rounded-xl border-l-3 border-l-red-500" style="border-left: 3px solid #ef4444;">
+                        <div class="flex items-center gap-2 mb-2"><i data-lucide="x-circle" class="w-4 h-4 text-red-400"></i><span class="text-white font-semibold text-sm">LexError</span><span class="text-xs text-lipi-muted ml-2">— Tokenization phase</span></div>
+                        <p class="text-xs text-lipi-text mb-3 leading-relaxed">Caused by an unrecognized character in your source code. Includes line number.</p>
+                        <div class="bg-[#050505] p-3 rounded text-xs font-mono text-red-300">LexError (line 3): Unexpected character '@'</div>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl" style="border-left: 3px solid #f59e0b;">
+                        <div class="flex items-center gap-2 mb-2"><i data-lucide="alert-circle" class="w-4 h-4 text-yellow-400"></i><span class="text-white font-semibold text-sm">ParseError</span><span class="text-xs text-lipi-muted ml-2">— AST construction phase</span></div>
+                        <p class="text-xs text-lipi-text mb-3 leading-relaxed">Caused by invalid syntax — a missing brace, wrong keyword order, unexpected token. Includes line number and what was expected.</p>
+                        <div class="bg-[#050505] p-3 rounded text-xs font-mono text-yellow-300">ParseError (line 7): Expected 'in' but got '=' (Assign)</div>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl" style="border-left: 3px solid #3b82f6;">
+                        <div class="flex items-center gap-2 mb-2"><i data-lucide="bug" class="w-4 h-4 text-blue-400"></i><span class="text-white font-semibold text-sm">Runtime Error</span><span class="text-xs text-lipi-muted ml-2">— Execution phase</span></div>
+                        <p class="text-xs text-lipi-text mb-3 leading-relaxed">Caused by logic errors at execution time — calling a method on null, type mismatches, assertion failures, etc.</p>
+                        <div class="bg-[#050505] p-3 rounded text-xs font-mono text-blue-300">Error: Cannot read properties of null (reading 'style')</div>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mb-3">Debugging Tips</h3>
+                <div class="space-y-3">
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-3">
+                        <div class="w-5 h-5 rounded bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 text-xs font-bold">1</span></div>
+                        <div>
+                            <div class="text-white text-sm font-medium mb-1">Use log() liberally</div>
+                            <p class="text-xs text-lipi-text">Print variables at key points to trace execution flow and validate intermediate values.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-3">
+                        <div class="w-5 h-5 rounded bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 text-xs font-bold">2</span></div>
+                        <div>
+                            <div class="text-white text-sm font-medium mb-1">Guard DOM selectors</div>
+                            <p class="text-xs text-lipi-text">Check <span class="ic">if element == null</span> before accessing properties. Selector failures are the most common runtime error.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-3">
+                        <div class="w-5 h-5 rounded bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 text-xs font-bold">3</span></div>
+                        <div>
+                            <div class="text-white text-sm font-medium mb-1">Use assert for invariants</div>
+                            <p class="text-xs text-lipi-text">Use <span class="ic">assert condition, "message"</span> to enforce assumptions about your data at critical points in algorithms.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl flex items-start gap-3">
+                        <div class="w-5 h-5 rounded bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5"><span class="text-violet-300 text-xs font-bold">4</span></div>
+                        <div>
+                            <div class="text-white text-sm font-medium mb-1">Check types before arithmetic</div>
+                            <p class="text-xs text-lipi-text">If a variable might come from <span class="ic">getInput()</span> or an array, convert it with <span class="ic">int()</span> or <span class="ic">float()</span> before doing math.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: BEST PRACTICES                      -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="patterns" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="shield-check" class="w-3 h-3"></i> 07 — Advanced</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Best Practices</h2>
+                <p class="text-lipi-text mb-6 leading-7">These patterns reflect how LIPI is designed to be used. They will save you from the most common classes of bugs.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+                    <div class="glass-card p-5 rounded-xl">
+                        <div class="flex items-center gap-2 mb-3 text-emerald-400"><i data-lucide="check" class="w-4 h-4"></i><span class="text-white font-semibold text-sm">Do</span></div>
+                        <div class="bg-[#050505] p-3 rounded mb-2">
+<pre class="code-block text-xs"><span class="c"># Guard before accessing</span>
+<span class="k">let</span> el <span class="op">=</span> <span class="sel">#my-box</span>
+<span class="k">if</span> el <span class="op">!=</span> <span class="k">null</span> {
+  el.innerText <span class="op">=</span> <span class="s">"Safe"</span>
+}</pre>
+                        </div>
+                        <p class="text-xs text-lipi-text">Always check DOM selectors before use.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl">
+                        <div class="flex items-center gap-2 mb-3 text-red-400"><i data-lucide="x" class="w-4 h-4"></i><span class="text-white font-semibold text-sm">Avoid</span></div>
+                        <div class="bg-[#050505] p-3 rounded mb-2">
+<pre class="code-block text-xs"><span class="c"># This crashes if #my-box is missing</span>
+<span class="k">let</span> el <span class="op">=</span> <span class="sel">#my-box</span>
+el.innerText <span class="op">=</span> <span class="s">"Unsafe"</span></pre>
+                        </div>
+                        <p class="text-xs text-lipi-text">Don't access properties without a null check.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl">
+                        <div class="flex items-center gap-2 mb-3 text-emerald-400"><i data-lucide="check" class="w-4 h-4"></i><span class="text-white font-semibold text-sm">Do</span></div>
+                        <div class="bg-[#050505] p-3 rounded mb-2">
+<pre class="code-block text-xs"><span class="c"># Convert input before math</span>
+<span class="k">let</span> raw <span class="op">=</span> <span class="k">getInput</span>(<span class="s">"Number:"</span>)
+<span class="k">let</span> n   <span class="op">=</span> <span class="f">int</span>(raw)
+<span class="f">log</span>(n <span class="op">*</span> <span class="n">2</span>)</pre>
+                        </div>
+                        <p class="text-xs text-lipi-text">Always convert input to the correct type.</p>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl">
+                        <div class="flex items-center gap-2 mb-3 text-red-400"><i data-lucide="x" class="w-4 h-4"></i><span class="text-white font-semibold text-sm">Avoid</span></div>
+                        <div class="bg-[#050505] p-3 rounded mb-2">
+<pre class="code-block text-xs"><span class="c"># "5" * 2 works, but "5" + 2 = "52"</span>
+<span class="k">let</span> raw <span class="op">=</span> <span class="k">getInput</span>(<span class="s">"Number:"</span>)
+<span class="f">log</span>(raw <span class="op">+</span> <span class="n">10</span>) <span class="c"># Concatenates!</span></pre>
+                        </div>
+                        <p class="text-xs text-lipi-text">Don't add numbers to raw string input.</p>
+                    </div>
+                </div>
+
+                <div class="callout">
+                    <div class="text-violet-300 font-semibold text-sm mb-1">Writing Algorithms in LIPI</div>
+                    <p class="text-xs text-lipi-text leading-relaxed mb-3">Structure complex programs by declaring helper functions at the top, then calling them at the bottom. Keep each function focused on a single responsibility. Use objects to group related state, and arrays as ordered queues or stacks.</p>
+                    <p class="text-xs text-lipi-text leading-relaxed">For data that changes over time (e.g., simulation state), store it in a top-level <span class="ic">let</span> variable. Pass it to functions by reference — objects and arrays are reference types, so mutations inside a function affect the original.</p>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: REAL EXAMPLES                       -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="examples" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="code-2" class="w-3 h-3"></i> 07 — Advanced</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Real-World Examples</h2>
+                <p class="text-lipi-text mb-8 leading-7">
+                    These examples demonstrate LIPI's capability for real algorithmic work. Each one runs in the console. Click <strong class="text-white">RUN</strong> to execute.
+                </p>
+
+                <!-- Example 1: Fibonacci with memoization -->
+                <h3 class="text-lg font-bold text-white mb-3">Fibonacci with Memoization</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Classic dynamic programming example. Stores computed results in an object to avoid redundant recursive calls.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-8">
+                    <div class="code-header">
+                        <span class="code-filename">fibonacci.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> cache <span class="op">=</span> {}
+
+<span class="k">func</span> <span class="f">fib</span>(n) {
+  <span class="k">if</span> n <span class="op">&lt;=</span> <span class="n">1</span> { <span class="k">return</span> n }
+  <span class="k">if</span> <span class="f">has</span>(cache, <span class="f">str</span>(n)) { <span class="k">return</span> cache[<span class="f">str</span>(n)] }
+  <span class="k">let</span> result <span class="op">=</span> <span class="f">fib</span>(n <span class="op">-</span> <span class="n">1</span>) <span class="op">+</span> <span class="f">fib</span>(n <span class="op">-</span> <span class="n">2</span>)
+  cache[<span class="f">str</span>(n)] <span class="op">=</span> result
+  <span class="k">return</span> result
+}
+
+<span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, <span class="n">16</span>) {
+  <span class="f">log</span>(<span class="s">`fib({i}) = {fib(i)}`</span>)
+}</pre>
+                    </div>
+                </div>
+
+                <!-- Example 2: State Machine -->
+                <h3 class="text-lg font-bold text-white mb-3">State Machine</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Models a system that transitions between named states based on events — a common pattern for UI flows, game logic, and network protocols.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-8">
+                    <div class="code-header">
+                        <span class="code-filename">state-machine.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> states <span class="op">=</span> {
+  idle:    {on_start: <span class="s">"running"</span>},
+  running: {on_pause: <span class="s">"paused"</span>,  on_stop: <span class="s">"idle"</span>, on_error: <span class="s">"error"</span>},
+  paused:  {on_resume: <span class="s">"running"</span>, on_stop: <span class="s">"idle"</span>},
+  error:   {on_reset: <span class="s">"idle"</span>}
+}
+
+<span class="k">let</span> current <span class="op">=</span> <span class="s">"idle"</span>
+
+<span class="k">func</span> <span class="f">dispatch</span>(event) {
+  <span class="k">let</span> map <span class="op">=</span> states[current]
+  <span class="k">let</span> key <span class="op">=</span> <span class="s">"on_"</span> <span class="op">+</span> event
+  <span class="k">if</span> <span class="f">has</span>(map, key) {
+    <span class="k">let</span> next <span class="op">=</span> map[key]
+    <span class="f">log</span>(<span class="s">`[{current}] --{event}--> [{next}]`</span>)
+    current <span class="op">=</span> next
+  } <span class="k">else</span> {
+    <span class="f">log</span>(<span class="s">`Invalid: '{event}' in state '{current}'`</span>)
+  }
+}
+
+<span class="f">dispatch</span>(<span class="s">"start"</span>)
+<span class="f">dispatch</span>(<span class="s">"pause"</span>)
+<span class="f">dispatch</span>(<span class="s">"stop"</span>)   <span class="c"># Invalid from paused</span>
+<span class="f">dispatch</span>(<span class="s">"resume"</span>)
+<span class="f">dispatch</span>(<span class="s">"error"</span>)
+<span class="f">dispatch</span>(<span class="s">"reset"</span>)
+<span class="f">log</span>(<span class="s">"Final state: "</span> <span class="op">+</span> current)</pre>
+                    </div>
+                </div>
+
+                <!-- Example 3: Bubble Sort -->
+                <h3 class="text-lg font-bold text-white mb-3">Bubble Sort with Visualization</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Implements bubble sort and logs each pass, demonstrating loops, mutation, and algorithmic thinking.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-8">
+                    <div class="code-header">
+                        <span class="code-filename">bubble-sort.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">func</span> <span class="f">bubbleSort</span>(arr) {
+  <span class="k">let</span> n      <span class="op">=</span> <span class="f">len</span>(arr)
+  <span class="k">let</span> sorted <span class="op">=</span> <span class="f">copy</span>(arr)
+  <span class="k">let</span> passes <span class="op">=</span> <span class="n">0</span>
+
+  <span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(n) {
+    <span class="k">let</span> swapped <span class="op">=</span> <span class="k">false</span>
+    <span class="k">for</span> j <span class="k">in</span> <span class="f">range</span>(n <span class="op">-</span> i <span class="op">-</span> <span class="n">1</span>) {
+      <span class="k">if</span> sorted[j] <span class="op">&gt;</span> sorted[j <span class="op">+</span> <span class="n">1</span>] {
+        <span class="k">let</span> tmp   <span class="op">=</span> sorted[j]
+        sorted[j] <span class="op">=</span> sorted[j <span class="op">+</span> <span class="n">1</span>]
+        sorted[j <span class="op">+</span> <span class="n">1</span>] <span class="op">=</span> tmp
+        swapped <span class="op">=</span> <span class="k">true</span>
+      }
+    }
+    passes<span class="op">++</span>
+    <span class="k">if</span> <span class="k">not</span> swapped { <span class="k">break</span> }
+  }
+  <span class="f">log</span>(<span class="s">`Completed in {passes} passes`</span>)
+  <span class="k">return</span> sorted
+}
+
+<span class="k">let</span> data   <span class="op">=</span> [<span class="n">64</span>, <span class="n">34</span>, <span class="n">25</span>, <span class="n">12</span>, <span class="n">22</span>, <span class="n">11</span>, <span class="n">90</span>]
+<span class="f">log</span>(<span class="s">"Input:  "</span> <span class="op">+</span> <span class="f">join</span>(data, <span class="s">", "</span>))
+<span class="k">let</span> result <span class="op">=</span> <span class="f">bubbleSort</span>(data)
+<span class="f">log</span>(<span class="s">"Output: "</span> <span class="op">+</span> <span class="f">join</span>(result, <span class="s">", "</span>))</pre>
+                    </div>
+                </div>
+
+                <!-- Example 4: Memory Allocator -->
+                <h3 class="text-lg font-bold text-white mb-3">Memory Block Allocator</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Simulates a simple block-based memory allocator. Demonstrates objects as mutable state containers, dynamic property keys, and has() for existence checking.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-8">
+                    <div class="code-header">
+                        <span class="code-filename">memory.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> heap   <span class="op">=</span> {capacity: <span class="n">32</span>, used: <span class="n">0</span>, blocks: {}}
+<span class="k">let</span> nextId <span class="op">=</span> <span class="n">0</span>
+
+<span class="k">func</span> <span class="f">alloc</span>(size) {
+  <span class="k">if</span> heap.used <span class="op">+</span> size <span class="op">&gt;</span> heap.capacity {
+    <span class="f">log</span>(<span class="s">"ERR: Out of heap space!"</span>)
+    <span class="k">return</span> <span class="op">-</span><span class="n">1</span>
+  }
+  <span class="k">let</span> id <span class="op">=</span> nextId
+  nextId<span class="op">++</span>
+  heap.blocks[<span class="f">str</span>(id)] <span class="op">=</span> {size: size, id: id}
+  heap.used <span class="op">+=</span> size
+  <span class="f">log</span>(<span class="s">`alloc(${size}) → block #${id}  [${heap.used}/${heap.capacity} used]`</span>)
+  <span class="k">return</span> id
+}
+
+<span class="k">func</span> <span class="f">free</span>(id) {
+  <span class="k">let</span> key <span class="op">=</span> <span class="f">str</span>(id)
+  <span class="k">if</span> <span class="k">not</span> <span class="f">has</span>(heap.blocks, key) {
+    <span class="f">log</span>(<span class="s">"ERR: Block #"</span> <span class="op">+</span> id <span class="op">+</span> <span class="s">" not found"</span>)
+    <span class="k">return</span>
+  }
+  heap.used <span class="op">-=</span> heap.blocks[key].size
+  <span class="k">delete</span> heap.blocks[key]
+  <span class="f">log</span>(<span class="s">`free(#${id})  [${heap.used}/${heap.capacity} used]`</span>)
+}
+
+<span class="k">func</span> <span class="f">status</span>() {
+  <span class="k">let</span> count <span class="op">=</span> <span class="f">len</span>(heap.blocks)
+  <span class="f">log</span>(<span class="s">`--- Heap: ${heap.used}/${heap.capacity} bytes, ${count} blocks ---`</span>)
+}
+
+<span class="k">let</span> a <span class="op">=</span> <span class="f">alloc</span>(<span class="n">8</span>)
+<span class="k">let</span> b <span class="op">=</span> <span class="f">alloc</span>(<span class="n">12</span>)
+<span class="k">let</span> c <span class="op">=</span> <span class="f">alloc</span>(<span class="n">6</span>)
+<span class="f">status</span>()
+<span class="f">free</span>(a)
+<span class="f">free</span>(b)
+<span class="k">let</span> d <span class="op">=</span> <span class="f">alloc</span>(<span class="n">18</span>)
+<span class="f">status</span>()</pre>
+                    </div>
+                </div>
+
+                <!-- Example 5: BFS Graph Traversal -->
+                <h3 class="text-lg font-bold text-white mb-3">BFS Graph Traversal</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Breadth-First Search across a directed graph stored as an adjacency list. Demonstrates queues, object membership checks, and nested loops.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-8">
+                    <div class="code-header">
+                        <span class="code-filename">bfs.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">let</span> graph <span class="op">=</span> {
+  A: [<span class="s">"B"</span>, <span class="s">"C"</span>],
+  B: [<span class="s">"D"</span>, <span class="s">"E"</span>],
+  C: [<span class="s">"F"</span>],
+  D: [],
+  E: [<span class="s">"F"</span>],
+  F: []
+}
+
+<span class="k">func</span> <span class="f">bfs</span>(start) {
+  <span class="k">let</span> visited <span class="op">=</span> {}
+  <span class="k">let</span> queue   <span class="op">=</span> [start]
+  <span class="k">let</span> order   <span class="op">=</span> []
+
+  visited[start] <span class="op">=</span> <span class="k">true</span>
+
+  <span class="k">while</span> <span class="f">len</span>(queue) <span class="op">&gt;</span> <span class="n">0</span> {
+    <span class="k">let</span> node <span class="op">=</span> queue[<span class="n">0</span>]
+    queue       <span class="op">=</span> <span class="f">slice</span>(queue, <span class="n">1</span>)
+    <span class="f">append</span>(order, node)
+    <span class="f">log</span>(<span class="s">"Visiting: "</span> <span class="op">+</span> node)
+
+    <span class="k">for</span> neighbor <span class="k">in</span> graph[node] {
+      <span class="k">if</span> <span class="k">not</span> <span class="f">has</span>(visited, neighbor) {
+        visited[neighbor] <span class="op">=</span> <span class="k">true</span>
+        <span class="f">append</span>(queue, neighbor)
+      }
+    }
+  }
+  <span class="k">return</span> order
+}
+
+<span class="k">let</span> path <span class="op">=</span> <span class="f">bfs</span>(<span class="s">"A"</span>)
+<span class="f">log</span>(<span class="s">"BFS order: "</span> <span class="op">+</span> <span class="f">join</span>(path, <span class="s">" → "</span>))</pre>
+                    </div>
+                </div>
+
+                <!-- Example 6: Async Simulation -->
+                <h3 class="text-lg font-bold text-white mb-3">Async Progress Simulation</h3>
+                <p class="text-lipi-text mb-4 text-sm leading-6">Demonstrates the power of <span class="ic">wait()</span> in loops to create timed output sequences — useful for visualizing algorithms step-by-step.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">simulation.lipi</span>
+                        <button onclick="runCode(this)" class="run-btn"><i data-lucide="play" class="w-3 h-3"></i> RUN</button>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">func</span> <span class="f">simulate</span>(label, steps) {
+  <span class="f">log</span>(<span class="s">`[{label}] Starting...`</span>)
+  <span class="k">let</span> i <span class="op">=</span> <span class="n">0</span>
+  <span class="k">while</span> i <span class="op">&lt;</span> steps {
+    i<span class="op">++</span>
+    <span class="k">let</span> pct <span class="op">=</span> <span class="f">round</span>((i <span class="op">/</span> steps) <span class="op">*</span> <span class="n">100</span>)
+    <span class="k">let</span> bar <span class="op">=</span> <span class="f">repeat</span>(<span class="s">"█"</span>, i) <span class="op">+</span> <span class="f">repeat</span>(<span class="s">"░"</span>, steps <span class="op">-</span> i)
+    <span class="f">log</span>(<span class="s">`[{label}] {bar} {pct}%`</span>)
+    <span class="k">wait</span>(<span class="n">150</span>)
+  }
+  <span class="f">log</span>(<span class="s">`[{label}] Complete ✓`</span>)
+}
+
+<span class="f">simulate</span>(<span class="s">"Compile"</span>, <span class="n">6</span>)
+<span class="f">simulate</span>(<span class="s">"Deploy"</span>, <span class="n">4</span>)</pre>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- FLOATING TERMINAL -->
+    <div id="term-modal" class="fixed bottom-6 right-6 w-[480px] max-w-[90vw] z-[100]">
+        <div class="glass-card rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10">
+            <div class="bg-[#18181b] px-4 py-3 border-b border-white/5 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="terminal-square" class="w-4 h-4 text-lipi-accent"></i>
+                    <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Console Output</span>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="clearConsole()" class="text-xs text-gray-500 hover:text-white transition-colors">Clear</button>
+                    <button onclick="toggleTerminal()" class="text-gray-500 hover:text-white transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+            </div>
+            <div id="console-body" class="bg-[#050505]/95 h-[320px] overflow-y-auto p-4 font-mono text-xs text-gray-300 space-y-1">
+                <div class="text-zinc-600 italic">// Output will appear here</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('globalLoader');
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                loader.style.pointerEvents = 'none';
+                setTimeout(() => { loader.style.display = 'none'; }, 800);
+            }, 600);
+        });
+
+        // ── Scroll spy ──────────────────────────────────────────
+        const sections  = document.querySelectorAll('section[id]');
+        const navLinks  = document.querySelectorAll('.nav-link');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { rootMargin: '-30% 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        // ── Terminal ─────────────────────────────────────────────
+        const termModal   = document.getElementById('term-modal');
+        const consoleBody = document.getElementById('console-body');
+        const origLog     = console.log;
+        const origError   = console.error;
+        const origWarn    = console.warn;
+
+        function toggleTerminal() { termModal.classList.toggle('open'); }
+
+        function clearConsole() {
+            consoleBody.innerHTML = '<div class="text-zinc-600 italic">// Console cleared</div>';
+        }
+
+        function _consoleAppend(text, color) {
+            const line = document.createElement('div');
+            line.className = 'flex gap-2 font-mono text-xs py-0.5';
+            line.innerHTML = `<span class="text-zinc-600 select-none shrink-0">›</span><span class="break-all" style="color:${color}">${text}</span>`;
+            consoleBody.appendChild(line);
+            consoleBody.scrollTop = consoleBody.scrollHeight;
+        }
+
+        // Override console methods to route to terminal
+        console.log = (...args) => {
+            origLog(...args);
+            const text = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+            _consoleAppend(text, '#d1d5db');
+        };
+        console.error = (...args) => {
+            origError(...args);
+            const text = args.map(a => String(a)).join(' ');
+            _consoleAppend(text, '#f87171');
+        };
+        console.warn = (...args) => {
+            origWarn(...args);
+            const text = args.map(a => String(a)).join(' ');
+            _consoleAppend(text, '#fbbf24');
+        };
+
+        // ── Run code blocks ───────────────────────────────────────
+        function runCode(btn) {
+            if (!termModal.classList.contains('open')) termModal.classList.add('open');
+
+            const pre = btn.closest('.glass-card').querySelector('pre');
+            if (!pre) return;
+
+            // Extract code text, stripping HTML tags
+            const code = pre.innerText;
+
+            // Divider
+            const divider = document.createElement('div');
+            divider.className = 'border-t border-white/10 my-2 pt-1 text-violet-400 text-[10px] font-mono font-bold opacity-60';
+            divider.innerText = '▷ Executing...';
+            consoleBody.appendChild(divider);
+
+            if (typeof Lipi !== 'undefined') {
+                setTimeout(() => {
+                    try {
+                        Lipi.run(code);
+                    } catch(e) {
+                        console.error('Error: ' + e.message);
+                    }
+                }, 50);
+            } else {
+                console.error('Lipi engine not loaded. Check that lipi.js is included.');
+            }
+        }
+    </script>
+</body>
+</html>

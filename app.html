@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LIPI App</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; min-height: 100vh; background: #0a0a0b; }
+  #__lipi_status {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 10px; background: #0a0a0b; color: #a1a1aa;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; z-index: 99998;
+  }
+  #__lipi_status.hidden { display: none; }
+  .__lipi_spin { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #3f3f46; border-top-color: #8b5cf6; animation: __lipi_spin 0.8s linear infinite; }
+  @keyframes __lipi_spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+  <div id="__lipi_status">
+    <div class="__lipi_spin"></div>
+    <span id="__lipi_status_text">Loading published app…</span>
+  </div>
+
+  <div id="app-preview"></div>
+
+  <!-- Same public Firebase web config used by the rest of LIPI Studio.
+       This config identifies the Firebase *project*, it is not a secret —
+       access is enforced by Firestore security rules (see firestore.rules),
+       which only allow public READ of the `published` collection. -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    const firebaseConfig = {
+        apiKey:            'AIzaSyCqF4YvZ9DX34Xi9yQAKtmLiQl16A-MX1M',
+        authDomain:        'lipi-a2281.firebaseapp.com',
+        projectId:         'lipi-a2281',
+        storageBucket:     'lipi-a2281.firebasestorage.app',
+        messagingSenderId: '520308268843',
+        appId:             '1:520308268843:web:43a05b9a1613accc3daf6e',
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const statusEl     = document.getElementById('__lipi_status');
+    const statusTextEl = document.getElementById('__lipi_status_text');
+
+    function fail(msg) {
+        statusTextEl.textContent = msg;
+        const spin = statusEl.querySelector('.__lipi_spin');
+        if (spin) spin.style.display = 'none';
+    }
+
+    async function boot() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        if (!id) { fail('No app ID provided. Use ?id=<projectId>.'); return; }
+
+        let snap;
+        try {
+            snap = await getDoc(doc(db, 'published', id));
+        } catch (e) {
+            fail('This app is unavailable (failed to load).');
+            console.error('[app.html] Firestore read failed:', e.message);
+            return;
+        }
+
+        if (!snap.exists()) { fail('This app has not been published, or was unpublished.'); return; }
+
+        const data = snap.data();
+        document.title = data.name ? `${data.name} — LIPI App` : 'LIPI App';
+        document.getElementById('app-preview').innerHTML = data.files?.html || '';
+
+        // Load the Lipi engine, then run the published Lipi source.
+        const script = document.createElement('script');
+        script.src = 'lipi.js';
+        script.onload = () => {
+            const runWhenReady = () => {
+                if (!window.Lipi) { setTimeout(runWhenReady, 20); return; }
+                statusEl.classList.add('hidden');
+                try {
+                    Lipi.run(data.files?.lipi || '');
+                } catch (e) {
+                    console.error('[app.html] Runtime error:', e);
+                }
+            };
+            runWhenReady();
+        };
+        script.onerror = () => fail('Failed to load the Lipi runtime (lipi.js).');
+        document.body.appendChild(script);
+    }
+
+    boot();
+  </script>
+</body>
+</html>

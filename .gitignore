@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+
+# roccoDB data
+data/
+server/data/
+roccoDBcontent/
+
+# Firebase Admin credentials
+firebase-service-account.json
+*service-account*.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/

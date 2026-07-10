@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LIPI — The Web-Native Programming Language</title>
+    <meta name="description" content="LIPI is a dynamically-typed, web-native programming language that compiles to JavaScript. Write clean algorithms, manipulate the DOM, and build interactive apps without boilerplate.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-palenight.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/mode/simple.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bg: { main: '#09090b', panel: '#121212', header: '#18181b', border: '#27272a' },
+                        lipi: { accent: '#8b5cf6', muted: '#71717a', text: '#a1a1aa' }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --accent: #8b5cf6;
+            --accent-dim: rgba(139,92,246,0.15);
+            --accent-border: rgba(139,92,246,0.3);
+            --green: #10b981;
+            --blue: #3b82f6;
+            --surface: #18181b;
+        }
+        body { background: #09090b; color: #e5e7eb; overflow-x: hidden; }
+        ::selection { background: rgba(139,92,246,0.35); color: white; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; border: 2px solid #09090b; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        /* ── GRID BACKGROUND ── */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right,  rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+        }
+
+        /* ── GLASS SURFACES ── */
+        .glass { background: rgba(24,24,27,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); }
+        .glass-hover { transition: border-color .25s, background .25s; }
+        .glass-hover:hover { background: rgba(24,24,27,0.85); border-color: rgba(139,92,246,0.35); }
+
+        /* ── GLOW EFFECTS ── */
+        .glow-v  { box-shadow: 0 0 24px rgba(139,92,246,0.35); }
+        .glow-g  { box-shadow: 0 0 24px rgba(16,185,129,0.25); }
+        .text-glow { text-shadow: 0 0 40px rgba(139,92,246,0.4); }
+
+        /* ── GRADIENT TEXT ── */
+        .grad-vg { background: linear-gradient(135deg, #a78bfa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .grad-vb { background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        /* ── CODEMIRROR OVERRIDES ── */
+        .CodeMirror { height: auto !important; background: #050505 !important; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.65; }
+        .CodeMirror-gutters { background: #050505 !important; border-right: 1px solid #1c1c1e; }
+        .CodeMirror-scroll { max-height: 280px; overflow-y: auto !important; }
+        .cm-hero .CodeMirror-scroll { max-height: 340px; }
+        .cm-mini .CodeMirror-scroll { max-height: 180px; }
+
+        /* ── SYNTAX CLASSES (inline code) ── */
+        .tk { color: #c084fc; font-weight: 600; }
+        .ts { color: #4ade80; }
+        .tf { color: #60a5fa; }
+        .tc { color: #52525b; font-style: italic; }
+        .tn { color: #f472b6; }
+        .top{ color: #e5e7eb; }
+        .tsel{ color: #fbbf24; }
+
+        /* ── PIPELINE STEP ── */
+        .pipe-step {
+            background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(24,24,27,0.8));
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: 12px;
+            padding: 20px 24px;
+            position: relative;
+        }
+        .pipe-arrow { color: #52525b; font-size: 22px; line-height: 1; }
+
+        /* ── COMPARISON TABLE ── */
+        .cmp-table th { padding: 12px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #52525b; border-bottom: 1px solid #27272a; }
+        .cmp-table td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .cmp-table tr:last-child td { border-bottom: none; }
+        .cmp-table td:first-child { color: #a1a1aa; font-size: 12px; }
+        .check-v { color: #a78bfa; font-weight: 700; }
+        .check-n { color: #52525b; }
+        .check-p { color: #f59e0b; }
+
+        /* ── FEATURE CARD ── */
+        .feat-card { border-radius: 16px; padding: 28px; background: rgba(24,24,27,0.5); border: 1px solid rgba(255,255,255,0.05); transition: all .25s; }
+        .feat-card:hover { border-color: rgba(139,92,246,0.3); transform: translateY(-2px); background: rgba(24,24,27,0.8); }
+
+        /* ── SECTION LABELS ── */
+        .sec-label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25); color: #a78bfa; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 16px; }
+
+        /* ── CALLOUT BOXES ── */
+        .callout-v { border-left: 3px solid #8b5cf6; background: rgba(139,92,246,0.06); border-radius: 0 8px 8px 0; padding: 14px 18px; }
+        .callout-g { border-left: 3px solid #10b981; background: rgba(16,185,129,0.06); border-radius: 0 8px 8px 0; padding: 14px 18px; }
+        .callout-y { border-left: 3px solid #f59e0b; background: rgba(245,158,11,0.06); border-radius: 0 8px 8px 0; padding: 14px 18px; }
+
+        /* ── INLINE CODE ── */
+        .ic { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #c084fc; background: rgba(139,92,246,0.1); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(139,92,246,0.18); }
+
+        /* ── STAT CARD ── */
+        .stat-num { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+
+        /* ── MEMORY DEMO BARS ── */
+        .mem-bar { height: 8px; border-radius: 999px; background: #27272a; overflow: hidden; }
+        .mem-fill { height: 100%; border-radius: 999px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+        /* ── STEP INDICATOR ── */
+        .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #27272a; transition: background .3s; }
+        .step-dot.on { background: var(--accent); box-shadow: 0 0 8px rgba(139,92,246,0.6); }
+
+        /* ── TIMELINE ── */
+        .tl-line { width: 2px; background: linear-gradient(to bottom, #8b5cf6, #10b981); border-radius: 1px; }
+
+        /* ── HERO CODE ANIMATION ── */
+        @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+        .cursor-blink { animation: blink 1.1s infinite; }
+
+        /* ── NAV LINK ── */
+        .nav-a { font-size: 13px; color: #a1a1aa; transition: color .15s; padding: 4px 0; }
+        .nav-a:hover { color: #fff; }
+
+        /* FAQ */
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] > summary .faq-icon { transform: rotate(180deg); }
+        .faq-icon { transition: transform .25s; }
+
+        /* Global Loader */
+        #globalLoader { position: fixed; inset: 0; background: #050505; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .5s ease; }
+
+        /* Scroll margin */
+        section { scroll-margin-top: 72px; }
+
+        /* ── TYPEWRITER ── */
+        #hero-line { min-height: 1.2em; }
+    </style>
+</head>
+
+<body class="font-sans antialiased">
+
+    <!-- LOADER -->
+    <div id="globalLoader">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-10 h-10 border-4 border-lipi-accent/30 border-t-lipi-accent rounded-full animate-spin"></div>
+            <div class="text-xs text-lipi-muted font-mono animate-pulse tracking-widest">LIPI — LOADING ENGINE...</div>
+        </div>
+    </div>
+
+    <!-- AMBIENT BG -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute top-[-15%] right-[-10%] w-[700px] h-[700px] bg-violet-700/8 rounded-full blur-[140px]"></div>
+        <div class="absolute bottom-[10%] left-[-10%] w-[500px] h-[500px] bg-emerald-700/6 rounded-full blur-[120px]"></div>
+        <div class="absolute top-[50%] left-[40%] w-[400px] h-[400px] bg-blue-700/5 rounded-full blur-[120px]"></div>
+        <div class="absolute inset-0 bg-grid opacity-100"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- NAVIGATION                                   -->
+    <!-- ═══════════════════════════════════════════ -->
+    <nav class="fixed top-0 w-full z-50 bg-[#09090b]/85 backdrop-blur-xl border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <i data-lucide="terminal" class="w-3.5 h-3.5 text-white"></i>
+                </div>
+                <span class="font-bold text-base tracking-tight text-white">LIPI</span>
+                <span class="hidden sm:inline text-[10px] font-mono text-zinc-600 ml-1">v3.0</span>
+            </div>
+            <div class="hidden md:flex items-center gap-7">
+                <a href="#what"     class="nav-a">Language</a>
+                <a href="#pipeline" class="nav-a">How It Works</a>
+                <a href="#features" class="nav-a">Features</a>
+                <a href="#demos"    class="nav-a">Playground</a>
+                <a href="#compare"  class="nav-a">Compare</a>
+                <a href="docs/index.html" class="nav-a">Docs</a>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="docs/index.html" class="hidden sm:flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded border border-white/10 hover:border-white/20">
+                    <i data-lucide="book-open" class="w-3 h-3"></i> Docs
+                </a>
+                <a href="account.html" class="flex items-center gap-2 bg-white text-black px-5 py-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-100 transition-all shadow shadow-white/10">
+                    Open Studio <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- HERO                                         -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section class="relative pt-36 pb-24 lg:pt-52 lg:pb-36 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6">
+
+            <!-- Badge -->
+            <div class="flex justify-center mb-8">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-[11px] font-bold uppercase tracking-widest text-violet-400">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
+                    </span>
+                    Stable Release · v3.0 · AST Compiler
+                </div>
+            </div>
+
+            <!-- Headline -->
+            <div class="text-center max-w-5xl mx-auto mb-8">
+                <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.05] text-white mb-6">
+                    Write logic.<br>
+                    <span class="grad-vg text-glow">Control the web.</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-zinc-400 font-light max-w-3xl mx-auto leading-relaxed">
+                    LIPI is a compiled, web-native programming language. Python's readability. JavaScript's reach. Zero configuration. Runs entirely in the browser.
+                </p>
+            </div>
+
+            <!-- CTAs -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-20">
+                <a href="account.html" class="flex items-center justify-center gap-2 bg-white text-black px-8 py-3.5 rounded-lg font-bold text-sm hover:bg-gray-100 transition-all shadow-xl shadow-white/10">
+                    <i data-lucide="play" class="w-4 h-4 fill-black"></i> Start Writing LIPI
+                </a>
+                <a href="docs/index.html" class="flex items-center justify-center gap-2 glass glass-hover px-8 py-3.5 rounded-lg font-medium text-sm text-gray-300">
+                    <i data-lucide="book" class="w-4 h-4"></i> Read the Docs
+                </a>
+                <a href="#demos" class="flex items-center justify-center gap-2 glass glass-hover px-8 py-3.5 rounded-lg font-medium text-sm text-gray-300">
+                    <i data-lucide="terminal" class="w-4 h-4"></i> Try Playground
+                </a>
+            </div>
+
+            <!-- Hero Code Window -->
+            <div class="max-w-5xl mx-auto">
+                <div class="glass rounded-2xl overflow-hidden shadow-2xl shadow-black/60" style="border-color: rgba(139,92,246,0.2);">
+                    <!-- Window chrome -->
+                    <div class="bg-[#0f0f0f] px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div class="flex gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500/40 border border-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/40 border border-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/40 border border-green-500/60"></div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-mono text-zinc-600">main.lipi</span>
+                            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        </div>
+                        <button id="hero-run-btn" class="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold px-3 py-1 rounded uppercase tracking-wider transition-colors">
+                            <i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> Run
+                        </button>
+                    </div>
+                    <!-- Split: code + output -->
+                    <div class="grid md:grid-cols-2">
+                        <!-- Code panel -->
+                        <div class="border-r border-white/5">
+                            <div class="px-3 py-2 border-b border-white/5 flex items-center gap-2">
+                                <i data-lucide="file-code" class="w-3 h-3 text-violet-400"></i>
+                                <span class="text-[10px] font-mono text-zinc-500">Code</span>
+                            </div>
+                            <div class="p-5">
+<pre class="font-mono text-[12.5px] leading-7 text-zinc-300 overflow-auto" style="max-height:320px"><span class="tc"># Memory Reinforcement Simulation</span>
+<span class="tk">let</span> memory <span class="top">=</span> {alpha: <span class="tn">0</span>, beta: <span class="tn">0</span>, gamma: <span class="tn">0</span>}
+<span class="tk">let</span> keys   <span class="top">=</span> [<span class="ts">"alpha"</span>, <span class="ts">"beta"</span>, <span class="ts">"gamma"</span>]
+
+<span class="tk">func</span> <span class="tf">reinforce</span>(key) {
+  memory[key] <span class="top">+=</span> <span class="tn">14</span>
+  <span class="tk">if</span> memory[key] <span class="top">&gt;</span> <span class="tn">100</span> { memory[key] <span class="top">=</span> <span class="tn">100</span> }
+  <span class="tk">let</span> bar <span class="top">=</span> <span class="tf">$</span>(<span class="ts">"#mem-"</span> <span class="top">+</span> key)
+  <span class="tk">let</span> lbl <span class="top">=</span> <span class="tf">$</span>(<span class="ts">"#lbl-"</span> <span class="top">+</span> key)
+  <span class="tk">if</span> bar <span class="top">!=</span> <span class="tk">null</span> {
+    bar.style.width <span class="top">=</span> memory[key] <span class="top">+</span> <span class="ts">"%"</span>
+    lbl.innerText   <span class="top">=</span> memory[key] <span class="top">+</span> <span class="ts">"%"</span>
+  }
+}
+
+<span class="tk">func</span> <span class="tf">runSim</span>() {
+  <span class="tk">for</span> round <span class="tk">in</span> <span class="tf">range</span>(<span class="tn">6</span>) {
+    <span class="tk">for</span> k <span class="tk">in</span> keys {
+      <span class="tf">reinforce</span>(k)
+      <span class="tf">wait</span>(<span class="tn">120</span>)
+    }
+  }
+}
+
+<span class="tf">runSim</span>()</pre>
+                            </div>
+                        </div>
+                        <!-- Live output panel -->
+                        <div class="bg-[#050505]">
+                            <div class="px-3 py-2 border-b border-white/5 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="activity" class="w-3 h-3 text-emerald-400"></i>
+                                    <span class="text-[10px] font-mono text-zinc-500">Live Output</span>
+                                </div>
+                                <div id="hero-status" class="text-[9px] font-mono text-zinc-600">Ready</div>
+                            </div>
+                            <div class="p-5 space-y-5">
+                                <div class="text-[10px] font-mono text-zinc-600 mb-4 uppercase tracking-wider">Memory Reinforcement System</div>
+                                <!-- Alpha bar -->
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5">
+                                        <span class="text-[11px] font-mono text-violet-300">alpha</span>
+                                        <span id="lbl-alpha" class="text-[11px] font-mono text-zinc-500">0%</span>
+                                    </div>
+                                    <div class="mem-bar"><div id="mem-alpha" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#7c3aed,#a78bfa)"></div></div>
+                                </div>
+                                <!-- Beta bar -->
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5">
+                                        <span class="text-[11px] font-mono text-emerald-300">beta</span>
+                                        <span id="lbl-beta" class="text-[11px] font-mono text-zinc-500">0%</span>
+                                    </div>
+                                    <div class="mem-bar"><div id="mem-beta" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#059669,#34d399)"></div></div>
+                                </div>
+                                <!-- Gamma bar -->
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5">
+                                        <span class="text-[11px] font-mono text-blue-300">gamma</span>
+                                        <span id="lbl-gamma" class="text-[11px] font-mono text-zinc-500">0%</span>
+                                    </div>
+                                    <div class="mem-bar"><div id="mem-gamma" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#1d4ed8,#60a5fa)"></div></div>
+                                </div>
+                                <!-- Console output -->
+                                <div id="hero-console" class="mt-4 h-20 overflow-y-auto font-mono text-[10px] text-zinc-500 space-y-0.5 border-t border-white/5 pt-3">
+                                    <div>// Click Run to execute simulation</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mt-12">
+                <div class="text-center glass rounded-xl p-5">
+                    <div class="stat-num text-white">AST</div>
+                    <div class="text-xs text-zinc-500 mt-1">Compiler Architecture</div>
+                </div>
+                <div class="text-center glass rounded-xl p-5">
+                    <div class="stat-num grad-vg">30+</div>
+                    <div class="text-xs text-zinc-500 mt-1">Built-in Functions</div>
+                </div>
+                <div class="text-center glass rounded-xl p-5">
+                    <div class="stat-num text-white">0ms</div>
+                    <div class="text-xs text-zinc-500 mt-1">Setup Time</div>
+                </div>
+                <div class="text-center glass rounded-xl p-5">
+                    <div class="stat-num text-white">100%</div>
+                    <div class="text-xs text-zinc-500 mt-1">Browser Native</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- WHAT IS LIPI                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="what" class="py-28 border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid lg:grid-cols-2 gap-20 items-center">
+                <div>
+                    <div class="sec-label"><i data-lucide="cpu" class="w-3 h-3"></i> The Language</div>
+                    <h2 class="text-4xl font-bold text-white mb-6 leading-tight">JavaScript was built for browsers.<br><span class="grad-vg">LIPI was built for thinking.</span></h2>
+                    <p class="text-zinc-400 leading-relaxed mb-6">
+                        JavaScript is powerful but verbose. Python is clean but runs on servers. LIPI takes the best of both — Python's readable syntax and JavaScript's direct browser access — and compiles transparently to JavaScript at runtime.
+                    </p>
+                    <p class="text-zinc-400 leading-relaxed mb-8">
+                        It was designed for one thing: <strong class="text-white">writing logic that interacts with a web page, without fighting the language to do it.</strong> No <span class="ic">async/await</span> ceremony. No event listener boilerplate. No DOM query soup. Just clean, readable code that does what you mean.
+                    </p>
+
+                    <div class="space-y-3">
+                        <div class="callout-v">
+                            <div class="text-violet-300 font-semibold text-sm mb-1">Philosophy #1 — Syntax should disappear</div>
+                            <p class="text-xs text-zinc-400">When you're designing an algorithm or building a visual simulation, the language should get out of the way. LIPI has no semicolons, no type annotations, no boilerplate.</p>
+                        </div>
+                        <div class="callout-g">
+                            <div class="text-emerald-300 font-semibold text-sm mb-1">Philosophy #2 — The DOM is a first-class citizen</div>
+                            <p class="text-xs text-zinc-400">HTML element selection and event binding are language primitives in LIPI, not library calls. <span class="ic">#box</span> selects an element. <span class="ic">on btn.click</span> binds an event. Nothing to import.</p>
+                        </div>
+                        <div class="callout-y">
+                            <div class="text-yellow-300 font-semibold text-sm mb-1">Philosophy #3 — Async should be invisible</div>
+                            <p class="text-xs text-zinc-400">Every function in LIPI is internally async. <span class="ic">wait(500)</span> pauses execution for 500ms — code after it runs after the pause. No callbacks, no promises, no async/await in your code.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Where it's useful -->
+                <div class="space-y-4">
+                    <h3 class="text-white font-bold text-lg mb-5">Where LIPI excels</h3>
+                    <div class="feat-card">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center shrink-0">
+                                <i data-lucide="git-branch" class="w-5 h-5 text-violet-400"></i>
+                            </div>
+                            <div>
+                                <div class="text-white font-semibold text-sm mb-1">Algorithm Visualization</div>
+                                <p class="text-xs text-zinc-500 leading-relaxed">Write bubble sort, BFS, or a memory allocator and watch it animate on screen using DOM updates and <span class="ic">wait()</span>. The code reads like a textbook algorithm.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feat-card">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0">
+                                <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i>
+                            </div>
+                            <div>
+                                <div class="text-white font-semibold text-sm mb-1">Interactive Simulations</div>
+                                <p class="text-xs text-zinc-500 leading-relaxed">Build state machines, progress systems, or real-time dashboards. LIPI's async model lets you build timed simulations that update the page step-by-step without any framework.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feat-card">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
+                                <i data-lucide="graduation-cap" class="w-5 h-5 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <div class="text-white font-semibold text-sm mb-1">Teaching Programming</div>
+                                <p class="text-xs text-zinc-500 leading-relaxed">LIPI's syntax is intentionally close to pseudocode. Students learning data structures can write their first algorithm in LIPI with the same mental model they'd use on paper.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feat-card">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-pink-500/15 border border-pink-500/25 flex items-center justify-center shrink-0">
+                                <i data-lucide="layout" class="w-5 h-5 text-pink-400"></i>
+                            </div>
+                            <div>
+                                <div class="text-white font-semibold text-sm mb-1">Rapid UI Prototyping</div>
+                                <p class="text-xs text-zinc-500 leading-relaxed">Design in the HTML tab. Write behavior in the LIPI tab. No build step. No bundler. Instant preview. The Studio gives you a full-stack environment in the browser.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- HOW LIPI WORKS — ENGINE PIPELINE            -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="pipeline" class="py-28 border-t border-white/5 bg-[#080808]">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="settings" class="w-3 h-3"></i> Under the Hood</div>
+                <h2 class="text-4xl font-bold text-white mb-4">The LIPI Compiler Pipeline</h2>
+                <p class="text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+                    LIPI is not an interpreter walking an AST node-by-node. It is a compiler that transforms your source code into valid JavaScript, then executes it. This makes it fast and predictable.
+                </p>
+            </div>
+
+            <!-- Pipeline steps -->
+            <div class="flex flex-col md:flex-row items-stretch gap-3 mb-16 max-w-5xl mx-auto">
+                <div class="pipe-step flex-1">
+                    <div class="text-[10px] font-mono text-violet-400 font-bold uppercase tracking-widest mb-2">Step 1</div>
+                    <div class="text-white font-bold text-lg mb-2">Lexer</div>
+                    <p class="text-xs text-zinc-500 leading-relaxed mb-3">Your source text is scanned character-by-character into typed tokens: keywords, identifiers, strings, numbers, operators. Invalid characters produce a <span class="ic">LexError</span> immediately.</p>
+                    <div class="glass rounded-lg p-3 text-[10px] font-mono text-zinc-400">
+                        <div class="text-zinc-600 mb-1">INPUT: <span class="text-zinc-300">let x = 10 + 5</span></div>
+                        <div class="text-zinc-600">TOKENS: <span class="text-violet-300">Keyword</span> <span class="text-zinc-400">Ident</span> <span class="text-zinc-400">Assign</span> <span class="text-pink-300">Number</span> <span class="text-zinc-400">Plus</span> <span class="text-pink-300">Number</span></div>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center text-zinc-700 text-2xl px-1">→</div>
+                <div class="pipe-step flex-1">
+                    <div class="text-[10px] font-mono text-blue-400 font-bold uppercase tracking-widest mb-2">Step 2</div>
+                    <div class="text-white font-bold text-lg mb-2">Parser (Pratt)</div>
+                    <p class="text-xs text-zinc-500 leading-relaxed mb-3">A Recursive Descent parser with a Pratt (top-down operator precedence) expression engine builds a typed AST. Incorrect syntax causes a <span class="ic">ParseError</span> with a line number.</p>
+                    <div class="glass rounded-lg p-3 text-[10px] font-mono text-zinc-400">
+                        <div class="text-zinc-600 mb-1">AST NODE:</div>
+                        <div class="text-blue-300">VarDecl <span class="text-zinc-400">{ name: "x",<br>&nbsp;&nbsp;init: BinaryExpr(+, 10, 5) }</span></div>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center text-zinc-700 text-2xl px-1">→</div>
+                <div class="pipe-step flex-1">
+                    <div class="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-widest mb-2">Step 3</div>
+                    <div class="text-white font-bold text-lg mb-2">Code Generator</div>
+                    <p class="text-xs text-zinc-500 leading-relaxed mb-3">The AST is walked and each node emits JavaScript. All code is wrapped in an <span class="ic">async IIFE</span>. User functions are tracked so call sites are automatically awaited.</p>
+                    <div class="glass rounded-lg p-3 text-[10px] font-mono text-zinc-400">
+                        <div class="text-zinc-600 mb-1">OUTPUT JS:</div>
+                        <div class="text-green-300">let x = (10 + 5);</div>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center text-zinc-700 text-2xl px-1">→</div>
+                <div class="pipe-step flex-1">
+                    <div class="text-[10px] font-mono text-orange-400 font-bold uppercase tracking-widest mb-2">Step 4</div>
+                    <div class="text-white font-bold text-lg mb-2">JS Runtime</div>
+                    <p class="text-xs text-zinc-500 leading-relaxed mb-3">The compiled JavaScript is executed via <span class="ic">new Function()</span> in the page scope. All browser globals are accessible. Errors are caught and displayed with full context.</p>
+                    <div class="glass rounded-lg p-3 text-[10px] font-mono text-zinc-400">
+                        <div class="text-zinc-600 mb-1">RESULT:</div>
+                        <div class="text-orange-300">// x = 15 in scope<br>// DOM fully accessible</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Async model explanation -->
+            <div class="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div class="glass rounded-2xl p-8">
+                    <h3 class="text-white font-bold text-xl mb-4 flex items-center gap-3">
+                        <div class="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="timer" class="w-4 h-4 text-violet-400"></i>
+                        </div>
+                        Why you never write <span class="ic ml-2">await</span>
+                    </h3>
+                    <p class="text-sm text-zinc-400 leading-relaxed mb-4">
+                        When LIPI compiles <span class="ic">wait(500)</span>, it emits <span class="ic">await __wait(500)</span> in JavaScript. The surrounding async IIFE pauses at this line for 500ms, then continues — exactly like blocking I/O in Python.
+                    </p>
+                    <p class="text-sm text-zinc-400 leading-relaxed mb-4">
+                        Every function you declare with <span class="ic">func</span> is compiled as <span class="ic">async function</span>. The compiler tracks all user-declared function names, and every call site to a user function automatically receives <span class="ic">await</span> in the generated code.
+                    </p>
+                    <div class="glass rounded-lg p-4 text-[11.5px] font-mono">
+                        <div class="text-zinc-500 mb-2">// LIPI source</div>
+                        <div><span class="tk">func</span> <span class="tf">process</span>() {<br>&nbsp;&nbsp;<span class="tf">wait</span>(<span class="tn">1000</span>)<br>&nbsp;&nbsp;<span class="tf">log</span>(<span class="ts">"done"</span>)<br>}<br><span class="tf">process</span>()</div>
+                        <div class="border-t border-white/5 mt-3 pt-3 text-zinc-500">// Compiled JS</div>
+                        <div class="text-green-300 text-[10px] mt-1">async function process() {"{<br>&nbsp;&nbsp;await __wait(1000);<br>&nbsp;&nbsp;console.log('done');<br>}"}<br>(await process());</div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-2xl p-8">
+                    <h3 class="text-white font-bold text-xl mb-4 flex items-center gap-3">
+                        <div class="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        Error handling built-in
+                    </h3>
+                    <p class="text-sm text-zinc-400 leading-relaxed mb-5">
+                        LIPI has three distinct error types, each thrown at a specific phase. Errors include line numbers and context — you'll never see a cryptic JavaScript stack trace.
+                    </p>
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3 p-3 rounded-lg" style="background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.15);">
+                            <i data-lucide="x-circle" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="text-white font-semibold text-xs mb-0.5">LexError</div>
+                                <div class="text-zinc-500 text-xs">Unknown character in source code. Line number included.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 rounded-lg" style="background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.15);">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-400 shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="text-white font-semibold text-xs mb-0.5">ParseError</div>
+                                <div class="text-zinc-500 text-xs">Invalid syntax — wrong token, missing brace, bad expression.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 rounded-lg" style="background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.15);">
+                            <i data-lucide="bug" class="w-4 h-4 text-blue-400 shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="text-white font-semibold text-xs mb-0.5">Runtime Error</div>
+                                <div class="text-zinc-500 text-xs">Logic error during execution — null access, type mismatch, assertion failure.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- LANGUAGE FEATURES                           -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="features" class="py-28 border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="layers" class="w-3 h-3"></i> Language Features</div>
+                <h2 class="text-4xl font-bold text-white mb-4">Everything you need.<br>Nothing you don't.</h2>
+                <p class="text-zinc-400 max-w-xl mx-auto">A complete language core: variables, loops, functions, objects, async, DOM, events — all with clean, unambiguous syntax.</p>
+            </div>
+
+            <!-- Feature grid — each cell has code snippet -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+
+                <!-- Variables & Types -->
+                <div class="feat-card">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-7 h-7 bg-violet-500/15 rounded-lg flex items-center justify-center">
+                            <i data-lucide="variable" class="w-3.5 h-3.5 text-violet-400"></i>
+                        </div>
+                        <span class="text-white font-semibold text-sm">Variables & Types</span>
+                    </div>
+                    <div class="glass rounded-lg p-4 font-mono text-[11.5px] leading-6 mb-3">
+<span class="tk">let</span> name   <span class="top">=</span> <span class="ts">"Alice"</span>      <span class="tc"># string</span>
+<span class="tk">let</span> score  <span class="top">=</span> <span class="tn">98.5</span>        <span class="tc"># number</span>
+<span class="tk">let</span> active <span class="top">=</span> <span class="tk">true</span>        <span class="tc"># boolean</span>
+<span class="tk">let</span> msg    <span class="top">=</span> <span class="ts">`Hi {name}!`</span> <span class="tc"># template</span>
+                    </div>
+                    <p class="text-xs text-zinc-500">Dynamic typing. Five primitives: string, number, boolean, null, undefined. Template literals with <span class="ic">{expr}</span> interpolation.</p>
+                </div>
+
+                <!-- Control Flow -->
+                <div class="feat-card">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-7 h-7 bg-blue-500/15 rounded-lg flex items-center justify-center">
+                            <i data-lucide="git-branch" class="w-3.5 h-3.5 text-blue-400"></i>
+                        </div>
+                        <span class="text-white font-semibold text-sm">Control Flow</span>
+                    </div>
+                    <div class="glass rounded-lg p-4 font-mono text-[11.5px] leading-6 mb-3">
+<span class="tk">if</span> score <span class="top">&gt;</span> <span class="tn">90</span> {
+  <span class="tf">log</span>(<span class="ts">"Excellent"</span>)
+} <span class="tk">else if</span> score <span class="top">&gt;</span> <span class="tn">70</span> {
+  <span class="tf">log</span>(<span class="ts">"Good"</span>)
+} <span class="tk">else</span> { <span class="tf">log</span>(<span class="ts">"Needs work"</span>) }
+                    </div>
+                    <p class="text-xs text-zinc-500">Full if / else if / else. Conditions don't need parentheses. Ternary: <span class="ic">"yes" if x else "no"</span>.</p>
+                </div>
+
+                <!-- Loops -->
+                <div class="feat-card">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-7 h-7 bg-emerald-500/15 rounded-lg flex items-center justify-center">
+                            <i data-lucide="repeat" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        </div>
+                        <span class="text-white font-semibold text-sm">Loops</span>
+                    </div>
+                    <div class="glass rounded-lg p-4 font-mono text-[11.5px] leading-6 mb-3">
+<span class="tc"># Arrays: iterate values</span>
+<span class="tk">for</span> item <span class="tk">in</span> [<span class="ts">"a"</span>,<span class="ts">"b"</span>,<span class="ts">"c"</span>] { ... }
+<span class="tc"># Objects: iterate keys</span>
+<span class="tk">for</span> key <span class="tk">in</span> {x:<span class="tn">1</span>,y:<span class="tn">2</span>} { ... }
+<span class="tc"># Numbers: 0..n-1</span>
+<span class="tk">for</span> i <span class="tk">in</span> <span class="tn">5</span> { ... }
+                    </div>
+                    <p class="text-xs text-zinc-500">Smart <span class="ic">for...in</span> iteration over arrays, objects, numbers. <span class="ic">while</span> loops. <span class="ic">break</span> and <span class="ic">continue</span> supported.</p>
+                </div>
+
+                <!-- Functions -->
+                <div class="feat-card">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-7 h-7 bg-pink-500/15 rounded-lg flex items-center justify-center">
+                            <i data-lucide="function-square" class="w-3.5 h-3.5 text-pink-400"></i>
+                        </div>
+                        <span class="text-white font-semibold text-sm">Functions</span>
+                    </div>
+                    <div class="glass rounded-lg p-4 font-mono text-[11.5px] leading-6 mb-3">
+<span class="tk">func</span> <span class="tf">fib</span>(n) {
+  <span class="tk">if</span> n <span class="top">&lt;=</span> <span class="tn">1</span> { <span class="tk">return</span> n }
+  <span class="tk">return</span> <span class="tf">fib</span>(n<span class="top">-</span><span class="tn">1</span>) <span class="top">+</span> <span class="tf">fib</span>(n<span class="top">-</span><span class="tn">2</span>)
+}
+<span class="tf">log</span>(<span class="tf">fib</span>(<span class="tn">10</span>)) <span class="tc"># 55</span>
+                    </div>
+                    <p class="text-xs text-zinc-500">Recursive functions work out of the box. All <span class="ic">func</span> declarations are internally async — they can freely call <span class="ic">wait()</span>.</p>
+                </div>
+
+                <!-- Objects & Arrays -->
+                <div class="feat-card">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-7 h-7 bg-orange-500/15 rounded-lg flex items-center justify-center">
+                            <i data-lucide="braces" class="w-3.5 h-3.5 text-orange-400"></i>
+                        </div>
+                        <span class="text-white font-semibold text-sm">Objects & Arrays</span>
+                    </div>
+                    <div class="glass rounded-lg p-4 font-mono text-[11.5px] leading-6 mb-3">
+<span class="tk">let</span> user <span class="top">=</span> {name:<span class="ts">"Bob"</span>, age:<span class="tn">25</span>}
+<span class="tf">log</span>(user.name)       <span class="tc"># dot</span>
+user[<span class="ts">"score"</span>] <span class="top">=</span> <span class="tn">99</span>  <span class="tc"># bracket</span>
+<span class="tk">delete</span> user.age      <span class="tc"># delete</span>
+<span class="tk">for</span> k <span class="tk">in</span> user { ... } <span class="tc"># keys</span>
+                    </div>
+                    <p class="text-xs text-zinc-500">Full object and array support with dot/bracket access, mutation, deletion, and key iteration.</p>
+                </div>
+
+                <!-- Async & DOM -->
+                <div class="feat-card">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-7 h-7 bg-cyan-500/15 rounded-lg flex items-center justify-center">
+                            <i data-lucide="zap" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        </div>
+                        <span class="text-white font-semibold text-sm">Async & DOM Events</span>
+                    </div>
+                    <div class="glass rounded-lg p-4 font-mono text-[11.5px] leading-6 mb-3">
+<span class="tk">let</span> btn <span class="top">=</span> <span class="tsel">#my-button</span>
+
+<span class="tk">on</span> btn.click {
+  btn.style.bg <span class="top">=</span> <span class="ts">"#7c3aed"</span>
+  <span class="tf">wait</span>(<span class="tn">500</span>)
+  btn.innerText <span class="top">=</span> <span class="ts">"Done ✓"</span>
+}
+                    </div>
+                    <p class="text-xs text-zinc-500">DOM selection with <span class="ic">#id</span> or <span class="ic">$(selector)</span>. Event binding with <span class="ic">on</span>. <span class="ic">wait()</span> pauses execution transparently.</p>
+                </div>
+
+            </div>
+
+            <!-- Operators table -->
+            <div class="grid lg:grid-cols-2 gap-8">
+                <div class="glass rounded-2xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-white/5 flex items-center gap-2">
+                        <i data-lucide="calculator" class="w-4 h-4 text-violet-400"></i>
+                        <span class="text-white font-bold text-sm">Full Operator Set</span>
+                    </div>
+                    <table class="w-full text-xs font-mono">
+                        <tr class="border-b border-white/5"><td class="px-5 py-2.5 text-violet-300">+  -  *  /  %</td><td class="px-5 py-2.5 text-zinc-500">Arithmetic</td></tr>
+                        <tr class="border-b border-white/5"><td class="px-5 py-2.5 text-violet-300">**</td><td class="px-5 py-2.5 text-zinc-500">Exponentiation (2**8 = 256)</td></tr>
+                        <tr class="border-b border-white/5"><td class="px-5 py-2.5 text-violet-300">//</td><td class="px-5 py-2.5 text-zinc-500">Floor division (10//3 = 3)</td></tr>
+                        <tr class="border-b border-white/5"><td class="px-5 py-2.5 text-violet-300">==  !=  &lt;  &gt;  &lt;=  &gt;=</td><td class="px-5 py-2.5 text-zinc-500">Comparison (strict equality)</td></tr>
+                        <tr class="border-b border-white/5"><td class="px-5 py-2.5 text-violet-300">and  or  not</td><td class="px-5 py-2.5 text-zinc-500">Logical (Python-style)</td></tr>
+                        <tr class="border-b border-white/5"><td class="px-5 py-2.5 text-violet-300">+=  -=  *=  //=  **=</td><td class="px-5 py-2.5 text-zinc-500">Compound assignment</td></tr>
+                        <tr class="border-b border-white/5"><td class="px-5 py-2.5 text-violet-300">++  --</td><td class="px-5 py-2.5 text-zinc-500">Prefix / postfix increment</td></tr>
+                        <tr><td class="px-5 py-2.5 text-violet-300">val if cond else other</td><td class="px-5 py-2.5 text-zinc-500">Python-style ternary</td></tr>
+                    </table>
+                </div>
+
+                <div class="glass rounded-2xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-white/5 flex items-center gap-2">
+                        <i data-lucide="package" class="w-4 h-4 text-emerald-400"></i>
+                        <span class="text-white font-bold text-sm">30+ Built-in Functions</span>
+                    </div>
+                    <div class="grid grid-cols-2 p-5 gap-y-1.5 text-[11.5px] font-mono">
+                        <div><span class="tf">len</span><span class="text-zinc-600">(x)</span></div>
+                        <div><span class="tf">range</span><span class="text-zinc-600">(a,b,step)</span></div>
+                        <div><span class="tf">keys</span><span class="text-zinc-600">(obj)</span></div>
+                        <div><span class="tf">values</span><span class="text-zinc-600">(obj)</span></div>
+                        <div><span class="tf">has</span><span class="text-zinc-600">(obj,key)</span></div>
+                        <div><span class="tf">str</span><span class="text-zinc-600"> int  float  bool</span></div>
+                        <div><span class="tf">abs  floor  ceil</span></div>
+                        <div><span class="tf">round</span><span class="text-zinc-600">(n,dp)</span></div>
+                        <div><span class="tf">max  min  sqrt</span></div>
+                        <div><span class="tf">random</span><span class="text-zinc-600">(a,b)</span></div>
+                        <div><span class="tf">append  pop</span></div>
+                        <div><span class="tf">sort  reverse</span></div>
+                        <div><span class="tf">filter  map  find</span></div>
+                        <div><span class="tf">join  split</span></div>
+                        <div><span class="tf">sum  avg</span></div>
+                        <div><span class="tf">upper  lower  trim</span></div>
+                        <div><span class="tf">toJSON  fromJSON</span></div>
+                        <div><span class="tf">merge  copy</span></div>
+                        <div><span class="tf">show  hide  clear</span></div>
+                        <div><span class="tf">addClass  setText</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- LIVE INTERACTIVE DEMOS                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="demos" class="py-28 border-t border-white/5 bg-[#080808]">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="play-circle" class="w-3 h-3"></i> Interactive Playground</div>
+                <h2 class="text-4xl font-bold text-white mb-4">Real code. Real output.</h2>
+                <p class="text-zinc-400 max-w-xl mx-auto">These are live LIPI programs running in your browser right now. Edit the code and click Run to see changes instantly.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-7">
+
+                <!-- Demo 1: DOM Event -->
+                <div class="glass glass-hover rounded-2xl overflow-hidden">
+                    <div class="bg-[#0f0f0f] px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="mouse-pointer-2" class="w-3.5 h-3.5 text-blue-400"></i>
+                            <span class="text-white font-bold text-xs">DOM Event Handler</span>
+                        </div>
+                        <button onclick="runDemo('d1')" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded uppercase tracking-wider transition-colors">
+                            <i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> Run
+                        </button>
+                    </div>
+                    <div class="p-5 border-b border-white/5">
+                        <textarea id="txt-d1"># Bind click to animate a button
+let btn = #demo1-btn
+
+on btn.click {
+  btn.innerText = "Working..."
+  btn.style.bg = "#f59e0b"
+  wait(600)
+  btn.innerText = "Success! ✓"
+  btn.style.bg = "#10b981"
+  wait(1000)
+  btn.innerText = "Click Me"
+  btn.style.bg = "#7c3aed"
+}</textarea>
+                    </div>
+                    <div class="p-5 flex items-center gap-4">
+                        <div class="text-[10px] text-zinc-600 font-mono uppercase tracking-wider">Preview →</div>
+                        <button id="demo1-btn" class="text-white text-xs font-bold px-6 py-2.5 rounded-lg transition-all duration-300" style="background:#7c3aed">Click Me</button>
+                    </div>
+                </div>
+
+                <!-- Demo 2: Async Counter -->
+                <div class="glass glass-hover rounded-2xl overflow-hidden">
+                    <div class="bg-[#0f0f0f] px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="timer" class="w-3.5 h-3.5 text-violet-400"></i>
+                            <span class="text-white font-bold text-xs">Async Countdown</span>
+                        </div>
+                        <button onclick="runDemo('d2')" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded uppercase tracking-wider transition-colors">
+                            <i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> Run
+                        </button>
+                    </div>
+                    <div class="p-5 border-b border-white/5">
+                        <textarea id="txt-d2"># Transparent async — no callbacks needed
+let display = #demo2-out
+let n = 5
+
+while n > 0 {
+  display.innerText = "T-minus: " + n
+  display.style.fg = "hsl(" + (n*30) + ",70%,60%)"
+  wait(600)
+  n--
+}
+display.innerText = "🚀 Liftoff!"
+display.style.fg = "#10b981"</textarea>
+                    </div>
+                    <div class="p-5">
+                        <div class="text-[10px] text-zinc-600 font-mono uppercase tracking-wider mb-2">Output →</div>
+                        <div id="demo2-out" class="font-mono text-sm text-zinc-500 font-bold">// Click Run</div>
+                    </div>
+                </div>
+
+                <!-- Demo 3: Algorithm -->
+                <div class="glass glass-hover rounded-2xl overflow-hidden">
+                    <div class="bg-[#0f0f0f] px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span class="text-white font-bold text-xs">Algorithm — Bubble Sort</span>
+                        </div>
+                        <button onclick="runDemo('d3')" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded uppercase tracking-wider transition-colors">
+                            <i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> Run
+                        </button>
+                    </div>
+                    <div class="p-5 border-b border-white/5">
+                        <textarea id="txt-d3">func bubbleSort(arr) {
+  let n = len(arr)
+  let s = copy(arr)
+  for i in range(n) {
+    for j in range(n - i - 1) {
+      if s[j] > s[j + 1] {
+        let tmp = s[j]
+        s[j] = s[j+1]
+        s[j+1] = tmp
+      }
+    }
+  }
+  return s
+}
+let data = [64, 34, 25, 12, 22, 11, 90]
+let out  = #demo3-out
+out.innerText = "Sorted: " + join(bubbleSort(data), ", ")</textarea>
+                    </div>
+                    <div class="p-5">
+                        <div class="text-[10px] text-zinc-600 font-mono uppercase tracking-wider mb-2">Output →</div>
+                        <div id="demo3-out" class="font-mono text-sm text-emerald-400 font-bold">// Click Run</div>
+                    </div>
+                </div>
+
+                <!-- Demo 4: State Machine -->
+                <div class="glass glass-hover rounded-2xl overflow-hidden">
+                    <div class="bg-[#0f0f0f] px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="shuffle" class="w-3.5 h-3.5 text-pink-400"></i>
+                            <span class="text-white font-bold text-xs">State Machine</span>
+                        </div>
+                        <button onclick="runDemo('d4')" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded uppercase tracking-wider transition-colors">
+                            <i data-lucide="play" class="w-2.5 h-2.5 fill-current"></i> Run
+                        </button>
+                    </div>
+                    <div class="p-5 border-b border-white/5">
+                        <textarea id="txt-d4">let states = {
+  idle:    {on_start: "running"},
+  running: {on_pause: "paused", on_stop: "idle"},
+  paused:  {on_resume: "running", on_stop: "idle"}
+}
+let current = "idle"
+func dispatch(event) {
+  let key = "on_" + event
+  if has(states[current], key) {
+    current = states[current][key]
+    log("[" + event + "] → " + current)
+  }
+}
+dispatch("start")
+dispatch("pause")
+dispatch("resume")
+dispatch("stop")
+log("Final: " + current)</textarea>
+                    </div>
+                    <div class="p-5">
+                        <div id="d4-console" class="font-mono text-[11px] text-zinc-500 space-y-0.5 h-16 overflow-y-auto">// Click Run</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <a href="account.html" class="inline-flex items-center gap-2 glass glass-hover px-8 py-3 rounded-xl text-sm font-medium text-zinc-300">
+                    <i data-lucide="code-2" class="w-4 h-4 text-violet-400"></i>
+                    Open Full Studio — write, run, and save your own LIPI programs
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- MEMORY SYSTEM SHOWCASE                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="showcase" class="py-28 border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid lg:grid-cols-2 gap-16 items-start">
+                <div>
+                    <div class="sec-label"><i data-lucide="brain" class="w-3 h-3"></i> Flagship Demo</div>
+                    <h2 class="text-4xl font-bold text-white mb-5 leading-tight">Build real systems.<br><span class="grad-vg">Not toy examples.</span></h2>
+                    <p class="text-zinc-400 leading-relaxed mb-6">
+                        This demo implements a memory reinforcement algorithm — the same conceptual model used in spaced-repetition learning systems like Anki. Written in ~20 lines of LIPI, it dynamically updates progress bars in real-time.
+                    </p>
+                    <p class="text-zinc-400 leading-relaxed mb-8">
+                        Each memory slot has a strength score that increases when reinforced and decays over time. The visual bars update live as the algorithm runs. This is exactly the kind of simulation LIPI was built for.
+                    </p>
+
+                    <div class="space-y-3 mb-8">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-violet-400"></div>
+                            <span class="text-sm text-zinc-400">All DOM updates driven by LIPI — no JavaScript written</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                            <span class="text-sm text-zinc-400">wait() creates the step-by-step visual progression</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+                            <span class="text-sm text-zinc-400">Object mutation and has() used for state management</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-pink-400"></div>
+                            <span class="text-sm text-zinc-400">Runs entirely in browser — zero dependencies</span>
+                        </div>
+                    </div>
+
+                    <button id="mem-run-btn" onclick="runMemoryDemo()" class="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all glow-v">
+                        <i data-lucide="play" class="w-4 h-4 fill-current"></i> Run Memory Simulation
+                    </button>
+                </div>
+
+                <!-- Memory Visualization -->
+                <div class="glass rounded-2xl overflow-hidden" style="border-color: rgba(139,92,246,0.2);">
+                    <div class="bg-[#0f0f0f] px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="activity" class="w-3.5 h-3.5 text-violet-400"></i>
+                            <span class="text-xs font-mono text-zinc-400">memory_system.lipi</span>
+                        </div>
+                        <div id="mem-status" class="flex items-center gap-1.5 text-[10px] font-mono text-zinc-600">
+                            <div class="w-1.5 h-1.5 rounded-full bg-zinc-700"></div> Idle
+                        </div>
+                    </div>
+                    <!-- Memory bars -->
+                    <div class="p-6 space-y-4 border-b border-white/5">
+                        <div>
+                            <div class="flex justify-between mb-1.5"><span class="text-xs font-mono text-violet-300">Concept Alpha</span><span id="mv-alpha" class="text-xs font-mono text-zinc-500">0 / 100</span></div>
+                            <div class="mem-bar"><div id="mb-alpha" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#6d28d9,#a78bfa)"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1.5"><span class="text-xs font-mono text-emerald-300">Concept Beta</span><span id="mv-beta" class="text-xs font-mono text-zinc-500">0 / 100</span></div>
+                            <div class="mem-bar"><div id="mb-beta" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#065f46,#34d399)"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1.5"><span class="text-xs font-mono text-blue-300">Concept Gamma</span><span id="mv-gamma" class="text-xs font-mono text-zinc-500">0 / 100</span></div>
+                            <div class="mem-bar"><div id="mb-gamma" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#1e3a5f,#60a5fa)"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1.5"><span class="text-xs font-mono text-pink-300">Concept Delta</span><span id="mv-delta" class="text-xs font-mono text-zinc-500">0 / 100</span></div>
+                            <div class="mem-bar"><div id="mb-delta" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#831843,#f472b6)"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1.5"><span class="text-xs font-mono text-orange-300">Concept Epsilon</span><span id="mv-epsilon" class="text-xs font-mono text-zinc-500">0 / 100</span></div>
+                            <div class="mem-bar"><div id="mb-epsilon" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#7c2d12,#fb923c)"></div></div>
+                        </div>
+                        <!-- Overall score -->
+                        <div class="border-t border-white/5 pt-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-mono text-zinc-400">Overall Retention</span>
+                                <span id="mv-total" class="text-sm font-mono font-bold text-white">0%</span>
+                            </div>
+                            <div class="mem-bar mt-2"><div id="mb-total" class="mem-fill" style="width:0%;background:linear-gradient(90deg,#7c3aed,#10b981)"></div></div>
+                        </div>
+                    </div>
+                    <!-- Source code snippet -->
+                    <div class="p-5">
+                        <div class="text-[10px] font-mono text-zinc-600 uppercase tracking-wider mb-3">LIPI Source</div>
+<pre class="font-mono text-[11px] leading-6 text-zinc-400 overflow-x-auto"><span class="tk">let</span> slots <span class="top">=</span> {alpha:<span class="tn">0</span>, beta:<span class="tn">0</span>, gamma:<span class="tn">0</span>, delta:<span class="tn">0</span>, epsilon:<span class="tn">0</span>}
+
+<span class="tk">func</span> <span class="tf">reinforce</span>(key) {
+  slots[key] <span class="top">+=</span> <span class="tf">random</span>(<span class="tn">8</span>, <span class="tn">22</span>)
+  <span class="tk">if</span> slots[key] <span class="top">&gt;</span> <span class="tn">100</span> { slots[key] <span class="top">=</span> <span class="tn">100</span> }
+  <span class="tf">updateBar</span>(key, slots[key])
+}
+
+<span class="tk">for</span> round <span class="tk">in</span> <span class="tf">range</span>(<span class="tn">8</span>) {
+  <span class="tk">for</span> k <span class="tk">in</span> slots { <span class="tf">reinforce</span>(k); <span class="tf">wait</span>(<span class="tn">80</span>) }
+}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- COMPARISON TABLE                            -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="compare" class="py-28 border-t border-white/5 bg-[#080808]">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-14">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="bar-chart-3" class="w-3 h-3"></i> Language Comparison</div>
+                <h2 class="text-4xl font-bold text-white mb-4">How LIPI compares</h2>
+                <p class="text-zinc-400 max-w-xl mx-auto">Not a replacement for Python or JavaScript. A focused tool for browser-based logic and visual systems.</p>
+            </div>
+
+            <div class="glass rounded-2xl overflow-hidden">
+                <table class="cmp-table w-full">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.03);">
+                            <th class="text-left">Feature</th>
+                            <th class="text-center text-violet-400">LIPI</th>
+                            <th class="text-center text-yellow-400">JavaScript</th>
+                            <th class="text-center text-blue-400">Python</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Setup required</td><td class="text-center check-v">✦ None</td><td class="text-center check-p">± Build tools optional</td><td class="text-center check-n">✕ Runtime required</td></tr>
+                        <tr><td>Clean, minimal syntax</td><td class="text-center check-v">✦ Yes</td><td class="text-center check-n">✕ Verbose</td><td class="text-center check-v">✦ Yes</td></tr>
+                        <tr><td>DOM manipulation built-in</td><td class="text-center check-v">✦ Language primitive</td><td class="text-center check-p">± Library required</td><td class="text-center check-n">✕ Not applicable</td></tr>
+                        <tr><td>Async without async/await</td><td class="text-center check-v">✦ Transparent</td><td class="text-center check-n">✕ Explicit required</td><td class="text-center check-n">✕ Explicit required</td></tr>
+                        <tr><td>Runs in the browser</td><td class="text-center check-v">✦ Native</td><td class="text-center check-v">✦ Native</td><td class="text-center check-n">✕ Needs Pyodide/WASM</td></tr>
+                        <tr><td>Event binding syntax</td><td class="text-center check-v">✦ <code class="ic text-xs">on el.click</code></td><td class="text-center check-n">✕ addEventListener()</td><td class="text-center check-n">✕ Not applicable</td></tr>
+                        <tr><td>Visual animation (wait)</td><td class="text-center check-v">✦ <code class="ic text-xs">wait(ms)</code></td><td class="text-center check-n">✕ setTimeout/Promise</td><td class="text-center check-n">✕ time.sleep (blocks)</td></tr>
+                        <tr><td>For-in over objects</td><td class="text-center check-v">✦ Iterates keys</td><td class="text-center check-p">± for...in (quirky)</td><td class="text-center check-v">✦ dict iteration</td></tr>
+                        <tr><td>Style shortcuts</td><td class="text-center check-v">✦ <code class="ic text-xs">el.style.bg</code></td><td class="text-center check-n">✕ Full property names</td><td class="text-center check-n">✕ Not applicable</td></tr>
+                        <tr><td>Compiled (not interpreted)</td><td class="text-center check-v">✦ AST → JS</td><td class="text-center check-v">✦ V8 JIT</td><td class="text-center check-p">± Bytecode</td></tr>
+                        <tr><td>Learning curve</td><td class="text-center check-v">✦ Low (pseudocode-like)</td><td class="text-center check-n">✕ High (async, this, etc.)</td><td class="text-center check-v">✦ Low</td></tr>
+                    </tbody>
+                </table>
+                <div class="px-6 py-4 border-t border-white/5 text-[11px] text-zinc-600 font-mono">
+                    ✦ = strong advantage &nbsp;&nbsp; ± = partial/conditional &nbsp;&nbsp; ✕ = limitation or not applicable
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- MINI SYNTAX GUIDE                           -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="syntax" class="py-28 border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-14">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="book" class="w-3 h-3"></i> Quick Reference</div>
+                <h2 class="text-4xl font-bold text-white mb-4">Syntax at a glance</h2>
+                <p class="text-zinc-400 max-w-xl mx-auto">The complete LIPI syntax in one scroll. For the full manual, see the <a href="docs/index.html" class="text-violet-400 hover:underline">documentation</a>.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Variables</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tk">let</span> x <span class="top">=</span> <span class="tn">42</span>
+<span class="tk">let</span> s <span class="top">=</span> <span class="ts">"hello"</span>
+<span class="tk">let</span> b <span class="top">=</span> <span class="tk">true</span>
+x <span class="top">+=</span> <span class="tn">10</span>
+x<span class="top">++</span></pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Conditions</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tk">if</span> x <span class="top">&gt;</span> <span class="tn">10</span> {
+  <span class="tf">log</span>(<span class="ts">"big"</span>)
+} <span class="tk">else</span> {
+  <span class="tf">log</span>(<span class="ts">"small"</span>)
+}</pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Loops</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tk">for</span> i <span class="tk">in</span> <span class="tf">range</span>(<span class="tn">5</span>) { ... }
+<span class="tk">for</span> x <span class="tk">in</span> [<span class="tn">1</span>,<span class="tn">2</span>,<span class="tn">3</span>] { ... }
+<span class="tk">for</span> k <span class="tk">in</span> obj { ... }
+<span class="tk">while</span> x <span class="top">&gt;</span> <span class="tn">0</span> { x<span class="top">--</span> }</pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Functions</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tk">func</span> <span class="tf">add</span>(a, b) {
+  <span class="tk">return</span> a <span class="top">+</span> b
+}
+<span class="tk">let</span> r <span class="top">=</span> <span class="tf">add</span>(<span class="tn">3</span>, <span class="tn">4</span>)  <span class="tc"># 7</span></pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Objects</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tk">let</span> o <span class="top">=</span> {a: <span class="tn">1</span>, b: <span class="ts">"hi"</span>}
+<span class="tf">log</span>(o.a)
+o[<span class="ts">"c"</span>] <span class="top">=</span> <span class="tk">true</span>
+<span class="tk">delete</span> o.b
+<span class="tf">log</span>(<span class="tf">has</span>(o, <span class="ts">"c"</span>))</pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Arrays</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tk">let</span> a <span class="top">=</span> [<span class="tn">1</span>, <span class="tn">2</span>, <span class="tn">3</span>]
+<span class="tf">append</span>(a, <span class="tn">4</span>)
+<span class="tf">log</span>(<span class="tf">len</span>(a))   <span class="tc"># 4</span>
+<span class="tf">log</span>(<span class="tf">sum</span>(a))   <span class="tc"># 10</span>
+<span class="tf">log</span>(<span class="tf">sort</span>(a))</pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">DOM Selection</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tc"># By ID (shorthand)</span>
+<span class="tk">let</span> el <span class="top">=</span> <span class="tsel">#my-box</span>
+<span class="tc"># By CSS selector</span>
+<span class="tk">let</span> el <span class="top">=</span> <span class="tf">$</span>(<span class="ts">"#my-box"</span>)
+<span class="tc"># Multiple elements</span>
+<span class="tk">let</span> els <span class="top">=</span> <span class="tf">queryAll</span>(<span class="ts">".card"</span>)</pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Events & Async</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tk">on</span> btn.click {
+  <span class="tf">wait</span>(<span class="tn">500</span>)
+  el.innerText <span class="top">=</span> <span class="ts">"Done"</span>
+}
+<span class="tc"># sleep = alias for wait</span>
+<span class="tf">sleep</span>(<span class="tn">1000</span>)</pre>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-3">Expressions</div>
+                    <pre class="font-mono text-[11.5px] leading-6 text-zinc-300"><span class="tn">2</span> <span class="top">**</span> <span class="tn">8</span>        <span class="tc"># 256</span>
+<span class="tn">10</span> <span class="top">//</span> <span class="tn">3</span>       <span class="tc"># 3 (floor)</span>
+<span class="ts">`Hi {name}!`</span>  <span class="tc"># interpolation</span>
+<span class="ts">"y"</span> <span class="tk">if</span> x <span class="tk">else</span> <span class="ts">"n"</span> <span class="tc"># ternary</span></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- DEVELOPER EXPERIENCE                        -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="dx" class="py-28 border-t border-white/5 bg-[#080808]">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="code-2" class="w-3 h-3"></i> Developer Experience</div>
+                <h2 class="text-4xl font-bold text-white mb-4">Zero to running in seconds.</h2>
+                <p class="text-zinc-400 max-w-xl mx-auto">No terminal. No npm install. No webpack config. Open the Studio and start writing.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6 mb-12">
+                <div class="feat-card text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center mx-auto mb-5">
+                        <i data-lucide="zap" class="w-6 h-6 text-violet-400"></i>
+                    </div>
+                    <h3 class="text-white font-bold text-lg mb-3">Instant Iteration</h3>
+                    <p class="text-sm text-zinc-500 leading-relaxed">Press <span class="ic">Ctrl+Enter</span> to run. Preview resets and re-executes in under 50ms. No build step, no hot reload delay.</p>
+                </div>
+                <div class="feat-card text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto mb-5">
+                        <i data-lucide="cloud" class="w-6 h-6 text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-white font-bold text-lg mb-3">Cloud Auto-Save</h3>
+                    <p class="text-sm text-zinc-500 leading-relaxed">Projects sync to Firestore in real-time with a 1.5s debounce. Your code is safe even if you close the tab. Offline support included.</p>
+                </div>
+                <div class="feat-card text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center mx-auto mb-5">
+                        <i data-lucide="layout" class="w-6 h-6 text-blue-400"></i>
+                    </div>
+                    <h3 class="text-white font-bold text-lg mb-3">Full Stack Editor</h3>
+                    <p class="text-sm text-zinc-500 leading-relaxed">Two tabs: <span class="ic">main.lipi</span> for logic, <span class="ic">index.html</span> for layout. A live preview and console sit side by side. Split panes, resizable.</p>
+                </div>
+            </div>
+
+            <!-- Studio screenshot mock -->
+            <div class="glass rounded-2xl overflow-hidden shadow-2xl shadow-black/50 max-w-4xl mx-auto" style="border-color: rgba(139,92,246,0.15);">
+                <div class="bg-[#0f0f0f] px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500/40 border border-red-500/60"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500/40 border border-yellow-500/60"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500/40 border border-green-500/60"></div>
+                    </div>
+                    <span class="text-[10px] font-mono text-zinc-600">LIPI Studio — Full Stack</span>
+                    <div class="flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <span class="text-[9px] font-mono text-zinc-600">Saved</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2">
+                    <div class="border-r border-white/5 p-5 bg-[#0a0a0a]">
+<pre class="font-mono text-[11px] leading-6 text-zinc-400"><span class="tc"># main.lipi</span>
+<span class="tf">log</span>(<span class="ts">"🚀 App Starting..."</span>)
+
+<span class="tk">let</span> box     <span class="top">=</span> <span class="tsel">#demo-box</span>
+<span class="tk">let</span> counter <span class="top">=</span> <span class="tn">0</span>
+
+<span class="tk">on</span> box.click {
+  counter <span class="top">+=</span> <span class="tn">1</span>
+  box.innerText <span class="top">=</span> <span class="ts">"Clicks: "</span> <span class="top">+</span> counter
+  box.style.bg <span class="top">=</span> <span class="ts">"hsl("</span> <span class="top">+</span>
+    (counter <span class="top">*</span> <span class="tn">30</span>) <span class="top">+</span> <span class="ts">",70%,45%)"</span>
+}</pre>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+                        <div class="text-[9px] font-mono text-zinc-700 uppercase tracking-wider mb-3">Live Preview</div>
+                        <div class="flex flex-col items-center justify-center h-24 gap-3">
+                            <div class="w-20 h-20 bg-violet-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg cursor-pointer">Click Me</div>
+                            <div class="text-[10px] font-mono text-zinc-600">Logic is in the Lipi tab →</div>
+                        </div>
+                        <div class="border-t border-white/5 pt-3 mt-3 font-mono text-[10px] text-zinc-600">
+                            <div class="text-violet-400">› 🚀 App Starting...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- BEST PRACTICES                              -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="tips" class="py-24 border-t border-white/5">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-12">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="shield-check" class="w-3 h-3"></i> Best Practices</div>
+                <h2 class="text-3xl font-bold text-white mb-3">Write LIPI that works.</h2>
+                <p class="text-zinc-400 max-w-xl mx-auto text-sm">Four patterns that separate reliable code from fragile code.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-5">
+                <div class="glass rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-4"><div class="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div><span class="text-white font-semibold text-sm">Always guard DOM selectors</span></div>
+                    <div class="glass rounded-lg p-3 font-mono text-[11px] mb-3">
+<span class="tk">let</span> el <span class="top">=</span> <span class="tsel">#my-box</span>
+<span class="tk">if</span> el <span class="top">!=</span> <span class="tk">null</span> {
+  el.innerText <span class="top">=</span> <span class="ts">"Safe"</span>
+}
+                    </div>
+                    <p class="text-xs text-zinc-500">If the element doesn't exist in the HTML tab, the selector returns null. Accessing .style or .innerText on null throws a runtime error.</p>
+                </div>
+
+                <div class="glass rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-4"><div class="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div><span class="text-white font-semibold text-sm">Convert input before arithmetic</span></div>
+                    <div class="glass rounded-lg p-3 font-mono text-[11px] mb-3">
+<span class="tk">let</span> raw <span class="top">=</span> <span class="tk">getInput</span>(<span class="ts">"Number:"</span>)
+<span class="tk">let</span> n   <span class="top">=</span> <span class="tf">int</span>(raw)
+<span class="tf">log</span>(n <span class="top">*</span> <span class="tn">2</span>)  <span class="tc"># correct</span>
+                    </div>
+                    <p class="text-xs text-zinc-500">getInput() always returns a string. Adding a string to a number concatenates instead of adding. Always use int() or float() first.</p>
+                </div>
+
+                <div class="glass rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-4"><div class="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div><span class="text-white font-semibold text-sm">Declare functions before calling them</span></div>
+                    <div class="glass rounded-lg p-3 font-mono text-[11px] mb-3">
+<span class="tc"># ✓ Define first</span>
+<span class="tk">func</span> <span class="tf">greet</span>(name) { <span class="tf">log</span>(name) }
+
+<span class="tc"># ✓ Then call</span>
+<span class="tf">greet</span>(<span class="ts">"Alice"</span>)
+                    </div>
+                    <p class="text-xs text-zinc-500">LIPI functions are not hoisted at the top level. Declare a function before the line that calls it in the main script flow.</p>
+                </div>
+
+                <div class="glass rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-4"><div class="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div><span class="text-white font-semibold text-sm">Use has() before accessing object keys</span></div>
+                    <div class="glass rounded-lg p-3 font-mono text-[11px] mb-3">
+<span class="tk">let</span> cache <span class="top">=</span> {}
+<span class="tk">if</span> <span class="tf">has</span>(cache, key) {
+  <span class="tk">return</span> cache[key]
+}
+                    </div>
+                    <p class="text-xs text-zinc-500">Accessing a key that doesn't exist on an object returns undefined, which can cause downstream bugs. Use has() to check first.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FAQ                                          -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="faq" class="py-24 border-t border-white/5 bg-[#080808]">
+        <div class="max-w-3xl mx-auto px-6">
+            <div class="text-center mb-12">
+                <div class="sec-label mx-auto w-fit"><i data-lucide="help-circle" class="w-3 h-3"></i> FAQ</div>
+                <h2 class="text-3xl font-bold text-white mb-3">Common questions</h2>
+            </div>
+
+            <div class="space-y-3">
+                <details class="glass glass-hover rounded-xl group">
+                    <summary class="flex items-center justify-between p-6 cursor-pointer select-none">
+                        <h3 class="text-white font-medium text-sm">What is LIPI and who is it for?</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 faq-icon"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                        LIPI is a compiled, web-native programming language designed for writing algorithms, building interactive browser applications, and teaching programming concepts. It is aimed at developers who want Python's clean syntax combined with direct browser access — without learning JavaScript's complexity.
+                    </div>
+                </details>
+
+                <details class="glass glass-hover rounded-xl group">
+                    <summary class="flex items-center justify-between p-6 cursor-pointer select-none">
+                        <h3 class="text-white font-medium text-sm">Does LIPI compile to JavaScript?</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 faq-icon"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                        Yes. LIPI is a proper compiler — it runs a Lexer, Parser, AST builder, and Code Generator entirely in the browser. Your LIPI source code is transformed into valid JavaScript at runtime, which is then executed via <span class="ic">new Function()</span>. The generated JavaScript is readable and can be inspected if a syntax error occurs.
+                    </div>
+                </details>
+
+                <details class="glass glass-hover rounded-xl group">
+                    <summary class="flex items-center justify-between p-6 cursor-pointer select-none">
+                        <h3 class="text-white font-medium text-sm">Why don't I need to write async/await?</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 faq-icon"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                        The LIPI code generator wraps all compiled code in an async IIFE (Immediately Invoked Function Expression). Every call to <span class="ic">wait()</span> compiles to <span class="ic">await __wait()</span>. Every user-declared function is compiled as <span class="ic">async function</span>, and every call to a user function receives <span class="ic">await</span> at the call site. You write synchronous-looking code; the compiler handles the async plumbing.
+                    </div>
+                </details>
+
+                <details class="glass glass-hover rounded-xl group">
+                    <summary class="flex items-center justify-between p-6 cursor-pointer select-none">
+                        <h3 class="text-white font-medium text-sm">Can LIPI access JavaScript libraries?</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 faq-icon"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                        Since LIPI compiles to JavaScript and runs in the browser scope, all global variables are accessible — including <span class="ic">Math</span>, <span class="ic">JSON</span>, <span class="ic">Object</span>, <span class="ic">Array</span>, <span class="ic">Date</span>, and any library loaded on the page. You can call <span class="ic">Math.random()</span> or <span class="ic">JSON.stringify()</span> directly in LIPI code.
+                    </div>
+                </details>
+
+                <details class="glass glass-hover rounded-xl group">
+                    <summary class="flex items-center justify-between p-6 cursor-pointer select-none">
+                        <h3 class="text-white font-medium text-sm">Do I need to install anything?</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 faq-icon"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                        No. LIPI Studio runs entirely in the browser with no installation, no Node.js, no npm, and no build tools. Open the Studio, sign in, and start writing. Your projects are saved to the cloud automatically.
+                    </div>
+                </details>
+
+                <details class="glass glass-hover rounded-xl group">
+                    <summary class="flex items-center justify-between p-6 cursor-pointer select-none">
+                        <h3 class="text-white font-medium text-sm">Is LIPI suitable for production web apps?</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 faq-icon"></i>
+                    </summary>
+                    <div class="px-6 pb-6 text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                        LIPI is optimized for interactive demos, algorithm visualization, simulations, and educational tooling. For production applications requiring complex state management, server interaction, or a large codebase, JavaScript or TypeScript with a framework remains the better choice. LIPI excels at the intersection of "I want to write an algorithm and see it run visually in the browser."
+                    </div>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- TEAM                                         -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="team" class="py-24 border-t border-white/5">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-bold text-white mb-12">Built by developers,<br><span class="grad-vg">for developers.</span></h2>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- CTA                                          -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section class="py-32 border-t border-white/5 relative overflow-hidden">
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-violet-950/10 to-transparent"></div>
+        </div>
+        <div class="max-w-3xl mx-auto px-6 text-center relative z-10">
+            <div class="sec-label mx-auto w-fit mb-6"><i data-lucide="rocket" class="w-3 h-3"></i> Get Started</div>
+            <h2 class="text-5xl font-bold text-white mb-6 leading-tight text-glow">Start writing<br><span class="grad-vg">real algorithms today.</span></h2>
+            <p class="text-xl text-zinc-400 mb-10 leading-relaxed">
+                LIPI Studio is free, browser-based, and ready in seconds. No account needed to explore the docs and demos.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="account.html" class="flex items-center justify-center gap-2 bg-white text-black px-10 py-4 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all shadow-2xl shadow-white/10">
+                    <i data-lucide="code-2" class="w-4 h-4"></i> Open Studio — Free
+                </a>
+                <a href="docs/index.html" class="flex items-center justify-center gap-2 glass glass-hover px-10 py-4 rounded-xl font-medium text-sm text-gray-300">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> Read the Full Docs
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FOOTER                                       -->
+    <!-- ═══════════════════════════════════════════ -->
+    <footer class="py-12 border-t border-white/5 bg-[#060606]">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-white">LIPI</div>
+                        <div class="text-[10px] font-mono text-zinc-600">The Web-Native Language · v3.0</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-6 text-xs text-zinc-500">
+                    <a href="docs/index.html" class="hover:text-white transition-colors">Documentation</a>
+                    <a href="account.html"    class="hover:text-white transition-colors">Studio</a>
+                    <a href="#features"       class="hover:text-white transition-colors">Features</a>
+                    <a href="#compare"        class="hover:text-white transition-colors">Compare</a>
+                    <a href="#faq"            class="hover:text-white transition-colors">FAQ</a>
+                </div>
+
+                <div class="text-xs text-zinc-600 text-center">
+                    <div>&copy; 2026 LIPI. Built by <a href="https://31e0.netlify.app" target="_blank" class="text-zinc-400 hover:text-violet-400 transition-colors">31E0</a>.</div>
+                    <div class="mt-1">Open source. Free forever.</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- SCRIPTS                                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <script src="lipi.js"></script>
+    <script>
+    lucide.createIcons();
+
+    // ── Loader ────────────────────────────────────
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('globalLoader');
+        setTimeout(() => {
+            loader.style.opacity = '0';
+            loader.style.pointerEvents = 'none';
+            setTimeout(() => {
+                loader.style.display = 'none';
+                // Auto-run hero demo after page loads
+                setTimeout(runHeroDemo, 800);
+            }, 500);
+        }, 700);
+    });
+
+    // ── CodeMirror mode ───────────────────────────
+    CodeMirror.defineSimpleMode("lipi", {
+        start: [
+            { regex: /`[^`]*`/, token: "string" },
+            { regex: /"(?:[^"\\]|\\.)*"/, token: "string" },
+            { regex: /'(?:[^'\\]|\\.)*'/, token: "string" },
+            { regex: /\b(func|let|if|else|for|while|return|wait|sleep|getInput|and|or|not|in|on|delete|typeof|assert|break|continue)\b/, token: "keyword" },
+            { regex: /#[^\n]*/, token: "comment" },
+            { regex: /\/\/[^\n]*/, token: "comment" },
+            { regex: /[\{\[\(]/, indent: true },
+            { regex: /[\}\]\)]/, dedent: true },
+            { regex: /[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/, token: "number" },
+            { regex: /\b(true|false|null|undefined)\b/, token: "atom" },
+            { regex: /\b(log|print|len|range|keys|values|str|int|float|bool|num|abs|max|min|round|floor|ceil|sqrt|pow|random|type|push|pop|append|join|split|sort|filter|map|find|includes|sum|avg|upper|lower|trim|replace|merge|copy|toJSON|fromJSON|show|hide|clear|setText|setHTML|queryAll|addClass|removeClass|sleep|has|wait)\b/, token: "builtin" },
+            { regex: /\$[a-zA-Z0-9_-]*/, token: "variable-2" },
+            { regex: /#[a-zA-Z0-9_-]+/, token: "variable-2" },
+        ]
+    });
+
+    // ── Demo editors ─────────────────────────────
+    const demoEditors = {};
+    ['d1','d2','d3','d4'].forEach(id => {
+        const el = document.getElementById('txt-' + id);
+        if (!el) return;
+        demoEditors[id] = CodeMirror.fromTextArea(el, {
+            mode: 'lipi',
+            theme: 'material-palenight',
+            lineNumbers: true,
+            viewportMargin: Infinity,
+            scrollbarStyle: 'null'
+        });
+    });
+
+    // ── Intercept console for demo d4 ────────────
+    const origLog = console.log;
+    console.log = (...args) => {
+        origLog(...args);
+        const d4c = document.getElementById('d4-console');
+        if (d4c && _inD4) {
+            const line = document.createElement('div');
+            line.textContent = '› ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            line.style.color = '#a78bfa';
+            d4c.appendChild(line);
+            d4c.scrollTop = d4c.scrollHeight;
+        }
+    };
+    let _inD4 = false;
+
+    // ── Run demo function ─────────────────────────
+    function runDemo(id) {
+        if (typeof Lipi === 'undefined') { alert('Lipi engine not loaded.'); return; }
+        const code = demoEditors[id]?.getValue() || '';
+        if (id === 'd4') {
+            _inD4 = true;
+            const d4c = document.getElementById('d4-console');
+            if (d4c) d4c.innerHTML = '';
+        }
+        try {
+            Lipi.run(code);
+        } catch(e) {
+            console.error('Error: ' + e.message);
+        }
+        if (id === 'd4') { setTimeout(() => { _inD4 = false; }, 3000); }
+    }
+
+    // ── Hero demo ─────────────────────────────────
+    function runHeroDemo() {
+        if (typeof Lipi === 'undefined') return;
+        // Reset bars
+        ['alpha','beta','gamma'].forEach(k => {
+            const bar = document.getElementById('mem-' + k);
+            const lbl = document.getElementById('lbl-' + k);
+            if (bar) bar.style.width = '0%';
+            if (lbl) lbl.textContent = '0%';
+        });
+        const hc = document.getElementById('hero-console');
+        if (hc) hc.innerHTML = '<div style="color:#52525b">// Running simulation...</div>';
+        const hs = document.getElementById('hero-status');
+        if (hs) hs.textContent = 'Running';
+
+        const code = `
+let memory = {alpha: 0, beta: 0, gamma: 0}
+let keyList = ["alpha", "beta", "gamma"]
+
+func reinforce(key) {
+  memory[key] += 14
+  if memory[key] > 100 { memory[key] = 100 }
+  let bar = $("mem-" + key)
+  let lbl = $("lbl-" + key)
+  if bar != null {
+    bar.style.width = memory[key] + "%"
+    lbl.innerText = memory[key] + "%"
+  }
+  log("Reinforced " + key + " → " + memory[key] + "%")
+}
+
+for round in range(6) {
+  for k in keyList {
+    reinforce(k)
+    wait(100)
+  }
+}
+log("Simulation complete!")
+`;
+        // patch $ to work for IDs without # for this demo
+        const origSel = window.$;
+        window.$ = (s) => document.getElementById(s) || (Lipi && Lipi.$(s));
+        try {
+            Lipi.run(code);
+        } catch(e) {}
+        setTimeout(() => {
+            window.$ = origSel;
+            if (hs) hs.textContent = 'Complete';
+        }, 4000);
+    }
+
+    document.getElementById('hero-run-btn')?.addEventListener('click', () => {
+        // Reset first
+        ['alpha','beta','gamma'].forEach(k => {
+            const bar = document.getElementById('mem-' + k);
+            const lbl = document.getElementById('lbl-' + k);
+            if (bar) bar.style.width = '0%';
+            if (lbl) lbl.textContent = '0%';
+        });
+        const hc = document.getElementById('hero-console');
+        if (hc) hc.innerHTML = '';
+        runHeroDemo();
+    });
+
+    // ── Memory showcase demo ──────────────────────
+    function runMemoryDemo() {
+        if (typeof Lipi === 'undefined') return;
+        const keys = ['alpha','beta','gamma','delta','epsilon'];
+        keys.forEach(k => {
+            const bar = document.getElementById('mb-' + k);
+            const lbl = document.getElementById('mv-' + k);
+            if (bar) bar.style.width = '0%';
+            if (lbl) lbl.textContent = '0 / 100';
+        });
+        const totalBar = document.getElementById('mb-total');
+        const totalLbl = document.getElementById('mv-total');
+        if (totalBar) totalBar.style.width = '0%';
+        if (totalLbl) totalLbl.textContent = '0%';
+
+        const stat = document.getElementById('mem-status');
+        if (stat) stat.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> Running';
+
+        const btn = document.getElementById('mem-run-btn');
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+
+        const slots = {alpha:0, beta:0, gamma:0, delta:0, epsilon:0};
+        const keyArr = ['alpha','beta','gamma','delta','epsilon'];
+        let step = 0;
+        const totalSteps = 40;
+
+        const interval = setInterval(() => {
+            if (step >= totalSteps) {
+                clearInterval(interval);
+                if (stat) stat.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-violet-500"></div> Complete';
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+                return;
+            }
+            const key = keyArr[step % keyArr.length];
+            const gain = Math.floor(Math.random() * 14) + 8;
+            slots[key] = Math.min(100, slots[key] + gain);
+            const bar = document.getElementById('mb-' + key);
+            const lbl = document.getElementById('mv-' + key);
+            if (bar) bar.style.width = slots[key] + '%';
+            if (lbl) lbl.textContent = slots[key] + ' / 100';
+            // Update total
+            const total = Math.round(keyArr.reduce((s, k) => s + slots[k], 0) / keyArr.length);
+            if (totalBar) totalBar.style.width = total + '%';
+            if (totalLbl) totalLbl.textContent = total + '%';
+            step++;
+        }, 120);
+    }
+
+    // ── Smooth scroll ─────────────────────────────
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            const target = document.querySelector(a.getAttribute('href'));
+            if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+        });
+    });
+    </script>
+</body>
+</html>
