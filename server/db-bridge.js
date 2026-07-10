@@ -34,6 +34,7 @@ const rateLimit          = require('express-rate-limit');
 const multer             = require('multer');
 const { RoccoDB }        = require('roccodb-iaaryan');
 const { getAuth } = require('firebase-admin/auth');
+const lipiCompiler = require('./lipi-compiler');
 
 // ─────────────────────────────────────────────────────────────────────────
 // CONFIG
@@ -403,6 +404,29 @@ function createDbBridge() {
             else res.end();
         }
     });
+
+    // ── POST /compile ──────────────────────────────────────────────────────
+router.post('/compile', requireAuth, (req, res) => {
+    try {
+        const { code } = req.body || {};
+
+        if (typeof code !== 'string' || !code.trim()) {
+            return res.status(400).json({
+                error: '"code" must be a non-empty string.'
+            });
+        }
+
+        const javascript = lipiCompiler.compile(code);
+
+        res.json({ javascript });
+    } catch (err) {
+        console.error('[db-bridge] compile failed:', err);
+
+        res.status(400).json({
+            error: err.message || 'Lipi compilation failed.'
+        });
+    }
+});
 
     // ── Health check ──────────────────────────────────────────────────
     router.get('/health', (req, res) => res.json({ ok: true, uptime: process.uptime() }));
