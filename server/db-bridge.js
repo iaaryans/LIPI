@@ -60,7 +60,7 @@ if (!AUTH_DISABLED) {
         admin = require('firebase-admin');
         const saPath = process.env.FIREBASE_SERVICE_ACCOUNT;
         // Sirf initializeApp tab chalega jab admin available ho
-        if (admin && admin.apps && admin.apps.length === 0) {
+        if (!admin.apps || admin.apps.length === 0) {
             admin.initializeApp(
                 saPath
                     ? { credential: admin.credential.cert(require(path.resolve(saPath))) }
