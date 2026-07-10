@@ -1,5 +1,7 @@
 # LIPI Studio — v12.0
 
+> Build browser apps in LIPI and persist real data with roccoDB.
+
 LIPI is a small web-native programming language (its own lexer, Pratt-parser,
 AST, and JS code generator) that runs in the browser, plus **LIPI Studio**: a
 CodeMirror-based IDE with Firebase-backed multi-project sync, a live preview,
@@ -48,9 +50,70 @@ roccoDB (C++20 engine, local folder storage, OUTSIDE any watched frontend dir)
 
 ---
 
-## 2. Setup
+## 2. Quick start
 
-### 2.1 Install dependencies
+### 3.1 Use the hosted Studio
+
+The easiest way to use LIPI is the hosted Studio:
+
+1. Open the LIPI Studio deployment.
+2. Sign up or sign in with Firebase Authentication.
+3. Create a project.
+4. Write UI in `index.html`.
+5. Write application logic in `main.lipi`.
+6. Click **RUN**.
+
+Database calls from LIPI are sent to the deployed roccoDB bridge over HTTPS.
+The browser never loads the native database addon directly.
+
+### 3.2 First real roccoDB record
+
+Paste this into `main.lipi`:
+
+```lipi
+let saved = dbInsert("users", {
+  name: "Aaryan",
+  project: "LIPI",
+  message: "roccoDB is working!"
+})
+
+log("INSERT RESULT:")
+log(saved)
+
+let user = dbGet("users", saved)
+
+log("READ RESULT:")
+log(user)
+```
+
+Expected flow:
+
+```text
+LIPI code
+   ↓
+dbInsert("users", {...})
+   ↓
+HTTPS request + Firebase ID token
+   ↓
+Node.js / Express database bridge
+   ↓
+roccoDB C++20 engine
+   ↓
+generated record id returned to LIPI
+   ↓
+dbGet("users", id)
+   ↓
+saved document returned
+```
+
+`dbInsert()` returns the new record ID. `dbGet()` reads one record, so it
+requires both the collection name and that ID.
+
+---
+
+## 3. Local development setup
+
+### 3.1 Install dependencies
 
 ```bash
 # Frontend has no build step — it's static HTML/JS.
@@ -65,7 +128,7 @@ Node.js **18+** is required (the AI proxy uses the built-in global `fetch`).
 `roccodb-iaaryan` contains a native addon — make sure you have build tools
 available for your platform (e.g. `build-essential`/Xcode CLT/`windows-build-tools`).
 
-### 2.2 Configure environment variables
+### 3.2 Configure environment variables
 
 Create `server/.env` (or export these in your process manager):
 
@@ -92,7 +155,7 @@ Get a free Groq key at https://console.groq.com. If `GROQ_API_KEY` is unset,
 the AI panel still loads — it just returns a clear "not configured" error
 instead of a raw failure.
 
-### 2.3 Run the backend bridge
+### 3.3 Run the backend bridge
 
 ```bash
 cd server
@@ -100,7 +163,7 @@ node db-bridge.js
 # [db-bridge] roccoDB bridge listening on :4000 (data dir: ./data)
 ```
 
-### 2.4 Serve the frontend
+### 3.4 Serve the frontend
 
 Any static file server works — the Studio itself has no build step.
 
@@ -115,7 +178,7 @@ If your bridge isn't at `http://127.0.0.1:4000/api/db`, set
 `window.LIPI_DB_API` before `lipi.js` loads — this is already wired up as a
 small inline `<script>` block at the top of `editor.html` and `app.html`.
 
-### 2.5 Deploy Firestore security rules
+### 3.5 Deploy Firestore security rules
 
 ```bash
 firebase deploy --only firestore:rules
@@ -129,7 +192,7 @@ project tree readable by anyone else.
 
 ---
 
-## 3. The LIPI language
+## 4. The LIPI language
 
 ```lipi
 let x = 42
@@ -171,7 +234,7 @@ removeClass toggleClass` · async: `wait/sleep`, `getInput`.
 
 ---
 
-## 4. roccoDB integration — API reference
+## 5. roccoDB integration — API reference
 
 Four LIPI globals, unchanged from the original spec, all backed by
 `server/db-bridge.js`:
@@ -202,7 +265,7 @@ leaves exactly one active subscription, not five.
 
 ---
 
-## 5. Studio features
+## 6. Studio features
 
 - **Run** — compiles and executes the current project in the live preview.
 - **Open App** — bundles the current project into a self-contained HTML
@@ -224,7 +287,257 @@ leaves exactly one active subscription, not five.
 
 ---
 
-## 6. Security notes
+
+## 7. Production deployment
+
+The production architecture uses two separate deployments:
+
+```text
+Netlify
+  └── LIPI Studio frontend (static HTML/CSS/JS)
+          │
+          │ HTTPS + Firebase ID token
+          ▼
+Render
+  └── Node.js / Express db bridge
+          │
+          ▼
+      roccoDB
+```
+
+### 7.1 Deploy the backend bridge to Render
+
+Deploy the repository as a Node.js Web Service and run:
+
+```bash
+cd server
+npm install
+npm start
+```
+
+The bridge must bind to Render's `PORT` environment variable. The current
+server code already uses:
+
+```js
+const PORT = parseInt(process.env.PORT || "4000", 10)
+```
+
+Configure production environment variables in the Render service:
+
+```bash
+ROCCO_DB_PATH=/tmp/roccodb
+ALLOWED_ORIGIN=https://your-site.netlify.app
+DB_BRIDGE_DISABLE_AUTH=false
+DB_BRIDGE_MAX_UPLOAD_MB=15
+
+# Firebase Admin credentials:
+FIREBASE_SERVICE_ACCOUNT=/path/to/service-account.json
+# or GOOGLE_APPLICATION_CREDENTIALS / applicationDefault()
+```
+
+For production, Firebase Admin must be initialized correctly. Never use
+`DB_BRIDGE_DISABLE_AUTH=true` on a public deployment.
+
+Verify the deployment before connecting the frontend:
+
+```text
+GET https://your-render-service.onrender.com/api/db/health
+```
+
+Expected response:
+
+```json
+{
+  "ok": true
+}
+```
+
+### 7.2 Point LIPI Studio to the deployed bridge
+
+Set the database API URL before `lipi.js` loads:
+
+```html
+<script>
+  window.LIPI_DB_API =
+    "https://your-render-service.onrender.com/api/db"
+</script>
+
+<script src="lipi.js"></script>
+```
+
+Do this anywhere the LIPI runtime can execute database code, including the
+Studio editor page and the published-app viewer.
+
+If DevTools shows a request to `127.0.0.1:4000` after deployment, the frontend
+is still using the local bridge URL.
+
+### 7.3 Deploy the frontend to Netlify
+
+LIPI Studio is a static frontend, so there is no build step. Deploy the
+frontend files from the repository root.
+
+Include the frontend application files such as:
+
+```text
+index.html
+account.html
+editor.html
+editor.js
+editor-sync.js
+project-manager.js
+ai-panel.js
+app.html
+lipi.js
+firestore.rules
+docs/
+```
+
+Do not deploy these frontend secrets or backend-only files:
+
+```text
+server/.env
+Firebase service-account JSON files
+node_modules/
+local roccoDB data folders
+```
+
+The `server/` directory is not needed by Netlify when the backend is already
+running separately on Render.
+
+After deploying:
+
+1. Add the exact Netlify origin to `ALLOWED_ORIGIN` on the Render service.
+2. Redeploy or restart the backend if the environment changed.
+3. Open the Netlify site and sign in.
+4. Create a LIPI project.
+5. Run the insert/read test.
+6. Confirm that `dbInsert()` returns an ID and `dbGet()` returns the document.
+
+### 7.4 Production test app
+
+Use this HTML:
+
+```html
+<div class="app">
+  <h1>roccoDB Test 🚀</h1>
+  <p>LIPI → roccoDB → Render → Production</p>
+
+  <input id="name-input" placeholder="Enter your name">
+  <button id="save-btn">Save to roccoDB</button>
+
+  <div id="status">Ready...</div>
+
+  <div class="card">
+    <h3>Saved Record</h3>
+    <p id="result">Nothing saved yet.</p>
+  </div>
+</div>
+
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #0b0b0f;
+    color: white;
+    font-family: Arial, sans-serif;
+  }
+
+  .app {
+    width: 360px;
+    padding: 32px;
+    background: #15151c;
+    border: 1px solid #292933;
+    border-radius: 20px;
+  }
+
+  h1 { color: #9b6cff; }
+
+  input, button {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 14px;
+    margin-top: 12px;
+    border-radius: 10px;
+    border: none;
+  }
+
+  input {
+    background: #22222c;
+    color: white;
+  }
+
+  button {
+    background: #7c3aed;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .card {
+    margin-top: 20px;
+    padding: 16px;
+    background: #202029;
+    border-radius: 12px;
+  }
+
+  #status {
+    margin-top: 16px;
+    color: #aaa;
+  }
+</style>
+```
+
+Use this LIPI code:
+
+```lipi
+let nameInput = #name-input
+let saveBtn = #save-btn
+let status = #status
+let result = #result
+
+on saveBtn.click {
+  let name = nameInput.value
+
+  status.innerText = "Saving to roccoDB..."
+
+  let saved = dbInsert("production-test", {
+    name: name,
+    message: "Hello from deployed LIPI!",
+    source: "Netlify Production"
+  })
+
+  log("INSERT RESULT:")
+  log(saved)
+
+  let record = dbGet("production-test", saved)
+
+  log("READ RESULT:")
+  log(record)
+
+  status.innerText = "Success! Record saved and read back 🎉"
+  result.innerText =
+    "Name: " + record.name + " | Message: " + record.message
+}
+```
+
+A successful test proves the complete path works:
+
+```text
+Netlify frontend
+  → LIPI runtime
+  → authenticated HTTPS request
+  → Render bridge
+  → roccoDB write
+  → generated ID
+  → roccoDB read
+  → document returned to the browser
+```
+
+---
+
+## 8. Security notes
 
 - The Groq API key lives only in `server/.env` on the backend; the browser
   never sees it (`server/db-bridge.js` → `/ai/chat`).
@@ -240,12 +553,16 @@ leaves exactly one active subscription, not five.
 
 ---
 
-## 7. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
 | `Lipi engine not loaded` in console | `lipi.js` failed to load before `editor.js` ran — check script order in `editor.html`. |
-| `dbInsert`/`dbGet` reject with `401` | Missing/expired Firebase ID token, or the bridge's `FIREBASE_SERVICE_ACCOUNT` isn't configured. |
+| `dbInsert`/`dbGet` reject with `401` | Missing/expired Firebase ID token, or Firebase Admin isn't initialized correctly on the bridge. |
+| `network error reaching db bridge (Failed to fetch)` | Wrong `LIPI_DB_API`, bridge is sleeping/offline, CORS rejected the frontend origin, or the frontend still points to `127.0.0.1:4000`. |
+| `dbGet: "id" is required` | `dbGet` reads one record. Pass the ID returned by `dbInsert`, e.g. `dbGet("users", saved)`. |
+| Render says `applicationDefault` is undefined | Firebase Admin initialization is using the wrong API shape/version. Initialize the Admin SDK with a supported credential method and verify the installed `firebase-admin` version. |
+| Render deploy exits before becoming live | Check startup logs first. The bridge intentionally fails closed if Firebase Admin cannot initialize while auth is enabled. |
 | Live Server keeps reloading after a DB write | `ROCCO_DB_PATH` points inside a folder your static dev server is watching — move it outside. |
 | AI panel says "not configured on this server" | `GROQ_API_KEY` isn't set in the bridge's environment. |
 | `dbOnChange` stops firing after several RUNs | Should no longer happen (session teardown fix in `lipi.js` §"RUN-SESSION REGISTRY") — if it does, check the browser console for SSE connection errors. |
@@ -253,7 +570,7 @@ leaves exactly one active subscription, not five.
 
 ---
 
-## 8. Original roccoDB package docs
+## 10. Original roccoDB package docs
 
 The underlying `roccodb-iaaryan` npm package's own API (`RoccoDB`,
 `db.collection()`, `.insert()`, `.get()`, `.onChange()`,
