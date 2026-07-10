@@ -33,6 +33,7 @@ const helmet            = require('helmet');
 const rateLimit          = require('express-rate-limit');
 const multer             = require('multer');
 const { RoccoDB }        = require('roccodb-iaaryan');
+const { getAuth } = require('firebase-admin/auth');
 
 // ─────────────────────────────────────────────────────────────────────────
 // CONFIG
@@ -96,7 +97,7 @@ async function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Missing auth token.' });
     }
     try {
-        const decoded = await admin.auth().verifyIdToken(token);
+        const decoded = await getAuth().verifyIdToken(token);
         req.uid = decoded.uid;
         next();
     } catch (err) {
