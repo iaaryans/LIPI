@@ -593,7 +593,7 @@ ${engineTag}
       const msg = String(e.message || e).replace(/</g, "&lt;").replace(/>/g, "&gt;");
       box.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-weight:bold;color:#fff;font-size:13px">⚠️ Lipi Error</span>
+          <span style="font-weight:bold;color:#fff;font-size:13px">Lipi Error</span>
           <button onclick="this.parentNode.parentNode.remove()" style="background:none;border:none;color:#71717a;cursor:pointer;font-size:16px;line-height:1;">×</button>
         </div>
         <pre style="margin:0;white-space:pre-wrap;color:#fca5a5;font-size:11px">${msg}</pre>`;
