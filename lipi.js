@@ -1350,7 +1350,7 @@ class CodeGen {
 
       // Base URL for the bridge. Override before Lipi.init() runs, e.g.
       // window.LIPI_DB_API = 'https://api.myapp.com/db';
-      window.LIPI_DB_API = window.LIPI_DB_API || 'http://127.0.0.1:4000/api/db';
+      window.LIPI_DB_API = window.LIPI_DB_API || 'https://lipi-backend-okzg.onrender.com/api/db';
 
       async function _dbAuthToken() {
         try {
