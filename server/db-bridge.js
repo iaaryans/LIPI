@@ -55,26 +55,25 @@ const COLLECTION_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 // FIREBASE ADMIN (auth verification) — lazy, optional
 // ─────────────────────────────────────────────────────────────────────────
 let admin = null;
+
 if (!AUTH_DISABLED) {
     try {
-        admin = require('firebase-admin');
+        const { initializeApp, applicationDefault, cert, getApps } = require('firebase-admin/app');
+        const { getAuth } = require('firebase-admin/auth');
+
         const saPath = process.env.FIREBASE_SERVICE_ACCOUNT;
-        // Sirf initializeApp tab chalega jab admin available ho
-        if (!admin.apps || admin.apps.length === 0) {
-            admin.initializeApp(
-                saPath
-                    ? { credential: admin.credential.cert(require(path.resolve(saPath))) }
-                    : { credential: admin.credential.applicationDefault() }
-            );
+
+        if (getApps().length === 0) {
+            initializeApp({
+                credential: saPath
+                    ? cert(require(path.resolve(saPath)))
+                    : applicationDefault()
+            });
         }
+
+        admin = { getAuth };
     } catch (err) {
-        console.error(
-            '[db-bridge] FATAL: firebase-admin could not be initialized. ' +
-            'Set FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS, ' +
-            'or set DB_BRIDGE_DISABLE_AUTH=true for local development only.\n',
-            err.message
-        );
-        process.exitCode = 1;
+        console.error('[db-bridge] FATAL: firebase-admin could not be initialized.', err.message);
         throw err;
     }
 } else {
@@ -97,7 +96,7 @@ async function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Missing auth token.' });
     }
     try {
-        const decoded = await getAuth().verifyIdToken(token);
+        const decoded = await admin.getAuth().verifyIdToken(token);
         req.uid = decoded.uid;
         next();
     } catch (err) {
