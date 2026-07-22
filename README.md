@@ -2,6 +2,10 @@
 
 > Build browser apps in LIPI and persist real data with roccoDB.
 
+<p align="center">
+  <img src="./docs/screenshots/lipi-editor.png" alt="LIPI Studio">
+</p>
+
 LIPI is a small web-native programming language (its own lexer, Pratt-parser,
 AST, and JS code generator) that runs in the browser, plus **LIPI Studio**: a
 CodeMirror-based IDE with Firebase-backed multi-project sync, a live preview,
@@ -286,6 +290,26 @@ leaves exactly one active subscription, not five.
   is never present in any frontend file or in `localStorage`.
 
 ---
+
+## Screenshots
+
+### LIPI Studio
+
+The browser-based IDE provides syntax highlighting, project management, live preview, and one-click execution for LIPI applications.
+
+<p align="center">
+  <img src="./docs/screenshots/lipi-editor.png" alt="LIPI Studio" width="100%">
+</p>
+
+---
+
+### Live Preview — Chirp Application
+
+A complete social media application built and executed inside the LIPI Studio, demonstrating the compiler, runtime, and live preview working together.
+
+<p align="center">
+  <img src="./docs/screenshots/chirp-demo.png" alt="Chirp Demo" width="100%">
+</p>
 
 
 ## 7. Production deployment
