@@ -584,3 +584,26 @@ bridge limitations).
 ## License
 
 ISC
+
+## Keywords
+
+LIPI Programming Language
+Browser Programming Language
+Web IDE
+Compiler
+Parser
+Lexer
+AST
+JavaScript Code Generator
+roccoDB
+NoSQL Database
+Embedded Database
+Firebase
+Node.js
+Express
+AI IDE
+CodeMirror
+Programming Language from Scratch
+Custom Programming Language
+Browser Compiler
+Cloud IDE
