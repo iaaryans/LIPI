@@ -3,7 +3,7 @@
 > Build browser apps in LIPI and persist real data with roccoDB.
 
 <p align="center">
-  <img src="./docs/screenshots/lipi-editor.png" alt="LIPI Studio">
+  <img src="./docs/screenshots/editor-lipi-main.png" alt="LIPI Studio">
 </p>
 
 LIPI is a small web-native programming language (its own lexer, Pratt-parser,
