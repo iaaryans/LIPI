@@ -1,4 +1,4 @@
-# LIPI Studio — v12.0
+# LIPI Studio — v3.0.0
 
 > Build browser apps in LIPI and persist real data with roccoDB.
 
