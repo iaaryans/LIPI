@@ -234,6 +234,19 @@
                     </nav>
                 </div>
 
+                <div>
+                    <h4 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-3 pl-4">08_roccoDB</h4>
+                    <nav class="flex flex-col space-y-0.5">
+                        <a href="#rocco-intro"       class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Overview</a>
+                        <a href="#rocco-install"     class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Installation</a>
+                        <a href="#rocco-collections" class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Collections & Documents</a>
+                        <a href="#rocco-events"      class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Change Events</a>
+                        <a href="#rocco-storage"     class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Image & File Storage</a>
+                        <a href="#rocco-api"         class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">API Reference</a>
+                        <a href="#rocco-limits"      class="nav-link block px-4 py-1.5 text-sm text-lipi-text border-l-2 border-transparent hover:text-white hover:border-lipi-muted transition-all">Status & Limitations</a>
+                    </nav>
+                </div>
+
             </div>
         </aside>
 
@@ -245,7 +258,7 @@
                 <div class="section-badge"><i data-lucide="book-open" class="w-3 h-3"></i> Language Reference</div>
                 <h1 class="text-4xl lg:text-6xl font-bold text-white mb-6 leading-tight">The LIPI Manual.</h1>
                 <p class="text-lg text-lipi-text max-w-3xl leading-relaxed mb-8">
-                    Complete reference for the LIPI programming language — from syntax fundamentals to real-world algorithm design. Everything documented here reflects the actual behavior of the v3.0 engine.
+                    Complete reference for the LIPI programming language and its native database, <strong class="text-white font-semibold">roccoDB</strong> — from syntax fundamentals to real-world algorithm design to persisting data locally. Everything documented here reflects the actual behavior of the v3.0 engine and roccoDB v1.0.0.
                 </p>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="glass-card p-4 rounded-xl text-center">
@@ -1840,6 +1853,238 @@ el.innerText <span class="op">=</span> <span class="s">"Unsafe"</span></pre>
 <span class="f">simulate</span>(<span class="s">"Compile"</span>, <span class="n">6</span>)
 <span class="f">simulate</span>(<span class="s">"Deploy"</span>, <span class="n">4</span>)</pre>
                     </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: roccoDB OVERVIEW                     -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="rocco-intro" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="database" class="w-3 h-3"></i> 08 — roccoDB</div>
+                <h2 class="text-2xl font-bold text-white mb-4">What is roccoDB?</h2>
+                <p class="text-lipi-text mb-4 leading-7">
+                    roccoDB is a local, folder-based NoSQL document database built from scratch in C++20 and exposed to Node.js through a native Node-API binding. It runs directly inside your Node.js application — no MySQL, MongoDB, SQLite, or Firebase, and no separate database server.
+                </p>
+                <p class="text-lipi-text mb-6 leading-7">
+                    Your data stays on the machine or server where your application runs. roccoDB is the storage layer we reach for when a LIPI-powered tool needs to persist something locally.
+                </p>
+                <div class="callout callout-warning">
+                    <strong class="text-white">Experimental release.</strong> roccoDB is v1.0.0 — educational and pre-production. See <a href="#rocco-limits" class="text-amber-400 underline">Status & Limitations</a> before relying on it for anything critical.
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+                    <div class="glass-card p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-white mb-1">C++20</div>
+                        <div class="text-xs text-lipi-muted">Storage Engine</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-white mb-1">Node-API</div>
+                        <div class="text-xs text-lipi-muted">Native Binding</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl text-center">
+                        <div class="text-2xl font-bold text-white mb-1">Local</div>
+                        <div class="text-xs text-lipi-muted">Folder-Based Storage</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: roccoDB INSTALLATION                 -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="rocco-install" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="download" class="w-3 h-3"></i> 08 — roccoDB</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Installation & Quick Start</h2>
+                <p class="text-lipi-text mb-4 leading-7">
+                    Install from npm. roccoDB ships a native C++ addon, so a working native build toolchain may be required on your system.
+                </p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">terminal</span>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="c">$</span> npm install roccodb-iaaryan</pre>
+                    </div>
+                </div>
+                <p class="text-lipi-text mb-4 leading-7">roccoDB automatically creates and manages the local database folder the first time you point it at a path.</p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">index.js</span>
+                        <span class="text-[10px] font-mono text-lipi-muted">Node.js</span>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">const</span> { RoccoDB } <span class="op">=</span> <span class="f">require</span>(<span class="s">"roccodb-iaaryan"</span>)
+
+<span class="k">const</span> db <span class="op">=</span> <span class="k">new</span> <span class="f">RoccoDB</span>(<span class="s">"./my_database"</span>)
+<span class="k">const</span> users <span class="op">=</span> db.<span class="f">collection</span>(<span class="s">"users"</span>)
+
+<span class="k">const</span> id <span class="op">=</span> users.<span class="f">insert</span>({
+  name: <span class="s">"Aaryan"</span>,
+  age: <span class="n">20</span>,
+  active: <span class="k">true</span>
+})
+
+<span class="f">console</span>.log(<span class="s">"Inserted ID:"</span>, id)
+
+<span class="k">const</span> user <span class="op">=</span> users.<span class="f">get</span>(id)
+<span class="f">console</span>.log(<span class="s">"User:"</span>, user)</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: COLLECTIONS & DOCUMENTS              -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="rocco-collections" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="folder-tree" class="w-3 h-3"></i> 08 — roccoDB</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Collections & Documents</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    Organize documents into separate collections — each one a durable, append-only store with its own in-memory ID index.
+                </p>
+                <div class="glass-card rounded-xl overflow-hidden mb-8">
+                    <div class="code-header">
+                        <span class="code-filename">collections.js</span>
+                        <span class="text-[10px] font-mono text-lipi-muted">Node.js — runs server-side</span>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">const</span> users    <span class="op">=</span> db.<span class="f">collection</span>(<span class="s">"users"</span>)
+<span class="k">const</span> posts    <span class="op">=</span> db.<span class="f">collection</span>(<span class="s">"posts"</span>)
+<span class="k">const</span> messages <span class="op">=</span> db.<span class="f">collection</span>(<span class="s">"messages"</span>)
+
+<span class="k">const</span> postId <span class="op">=</span> posts.<span class="f">insert</span>({
+  title: <span class="s">"Hello roccoDB"</span>,
+  content: <span class="s">"My first local database post"</span>,
+  published: <span class="k">true</span>
+})
+
+<span class="k">const</span> post <span class="op">=</span> posts.<span class="f">get</span>(postId)
+<span class="f">console</span>.log(post)
+<span class="c">// { title: "Hello roccoDB", content: "...", published: true }</span></pre>
+                    </div>
+                </div>
+                <p class="text-lipi-text leading-7">Every collection currently exposes two operations at the JavaScript layer: <span class="ic">insert(doc)</span>, which returns a generated ID, and <span class="ic">get(id)</span>, which reads it back. Filtering and querying beyond ID lookup, plus update and delete, are on the roadmap — see <a href="#rocco-limits" class="text-lipi-accent underline">Status & Limitations</a>.</p>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: CHANGE EVENTS                        -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="rocco-events" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="radio" class="w-3 h-3"></i> 08 — roccoDB</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Local Change Events</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    Listen for writes inside a running collection with <span class="ic">onChange()</span>. This is an in-process notification, not cloud sync — it does not synchronize data between machines or remote clients.
+                </p>
+                <div class="glass-card rounded-xl overflow-hidden mb-6">
+                    <div class="code-header">
+                        <span class="code-filename">events.js</span>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">const</span> messages <span class="op">=</span> db.<span class="f">collection</span>(<span class="s">"messages"</span>)
+
+messages.<span class="f">onChange</span>((event) <span class="op">=></span> {
+  <span class="f">console</span>.log(<span class="s">"Database changed:"</span>, event)
+})
+
+messages.<span class="f">insert</span>({
+  text: <span class="s">"Hello from roccoDB!"</span>
+})</pre>
+                    </div>
+                </div>
+                <div class="callout callout-info">
+                    <span class="text-blue-400 font-semibold">Note:</span> <span class="ic">onChange()</span> fires for writes made by the current process. It's a local hook for reacting to your own app's writes, not a distributed event bus.
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: IMAGE & FILE STORAGE                 -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="rocco-storage" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="image" class="w-3 h-3"></i> 08 — roccoDB</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Image & File Storage</h2>
+                <p class="text-lipi-text mb-6 leading-7">
+                    Larger files are kept separate from ordinary document records. Upload through <span class="ic">db.storage</span> and store the lightweight reference it returns on your document.
+                </p>
+                <div class="glass-card rounded-xl overflow-hidden mb-8">
+                    <div class="code-header">
+                        <span class="code-filename">social-post.js</span>
+                        <span class="text-[10px] font-mono text-lipi-muted">Example</span>
+                    </div>
+                    <div class="p-5 bg-[#050505]">
+<pre class="code-block"><span class="k">const</span> { RoccoDB } <span class="op">=</span> <span class="f">require</span>(<span class="s">"roccodb-iaaryan"</span>)
+<span class="k">const</span> db <span class="op">=</span> <span class="k">new</span> <span class="f">RoccoDB</span>(<span class="s">"./social_database"</span>)
+
+<span class="k">const</span> posts    <span class="op">=</span> db.<span class="f">collection</span>(<span class="s">"posts"</span>)
+<span class="k">const</span> imageRef <span class="op">=</span> db.storage.<span class="f">upload</span>(<span class="s">"./images/post.jpg"</span>)
+
+<span class="k">const</span> postId <span class="op">=</span> posts.<span class="f">insert</span>({
+  author: <span class="s">"Aaryan"</span>,
+  caption: <span class="s">"Building my own database from scratch 🚀"</span>,
+  image: imageRef,
+  likes: <span class="n">0</span>
+})
+
+<span class="f">console</span>.log(posts.<span class="f">get</span>(postId))</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: API REFERENCE                        -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="rocco-api" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="list" class="w-3 h-3"></i> 08 — roccoDB</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Current JavaScript API</h2>
+                <p class="text-lipi-text mb-6 leading-7">The full surface area of roccoDB v1.0.0 as exposed to JavaScript today.</p>
+                <div class="glass-card rounded-xl overflow-hidden">
+                    <table class="w-full prop-table">
+                        <thead>
+                            <tr>
+                                <th class="text-left">Call</th>
+                                <th class="text-left">Returns</th>
+                                <th class="text-left">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>new RoccoDB(path)</td><td>RoccoDB</td><td>Opens (or creates) a local database at the given folder path.</td></tr>
+                            <tr><td>db.collection(name)</td><td>Collection</td><td>Opens or creates a named collection inside the database.</td></tr>
+                            <tr><td>collection.insert(doc)</td><td>id</td><td>Writes a plain JavaScript object and returns its generated document ID.</td></tr>
+                            <tr><td>collection.get(id)</td><td>doc | null</td><td>Reads back a document by its ID.</td></tr>
+                            <tr><td>collection.onChange(fn)</td><td>void</td><td>Registers a local listener called on writes to that collection.</td></tr>
+                            <tr><td>db.storage.upload(path)</td><td>ref</td><td>Stores a file separately from document records and returns a reference.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ════════════════════════════════════════════ -->
+            <!-- SECTION: STATUS & LIMITATIONS                 -->
+            <!-- ════════════════════════════════════════════ -->
+            <section id="rocco-limits" class="mb-24 scroll-mt-32">
+                <div class="section-badge"><i data-lucide="alert-triangle" class="w-3 h-3"></i> 08 — roccoDB</div>
+                <h2 class="text-2xl font-bold text-white mb-4">Status & Limitations</h2>
+                <p class="text-lipi-text mb-6 leading-7">roccoDB v1.0.0 is an experimental, educational release. Read this before reaching for it in anything production-critical.</p>
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    <div class="glass-card rounded-xl p-6">
+                        <div class="text-white font-semibold text-sm mb-3 flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Good fits today</div>
+                        <ul class="text-sm text-lipi-text space-y-2 leading-6">
+                            <li>Learning database internals</li>
+                            <li>Local Node.js applications</li>
+                            <li>Prototypes and small developer tools</li>
+                            <li>Experimental backend projects</li>
+                            <li>Exploring C++ / JavaScript native integration</li>
+                        </ul>
+                    </div>
+                    <div class="glass-card rounded-xl p-6">
+                        <div class="text-white font-semibold text-sm mb-3 flex items-center gap-2"><i data-lucide="x" class="w-4 h-4 text-red-400"></i> Not yet available</div>
+                        <ul class="text-sm text-lipi-text space-y-2 leading-6">
+                            <li>Filtering and querying beyond ID lookup</li>
+                            <li>JavaScript-level update and delete APIs</li>
+                            <li>Networked or realtime sync (events are local only)</li>
+                            <li>Advanced concurrent access</li>
+                            <li>Guaranteed cross-platform behavior — still evolving</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="callout callout-warning">
+                    It should not be used for sensitive or critical production data. The internal on-disk storage structure may evolve between experimental versions.
                 </div>
             </section>
 
